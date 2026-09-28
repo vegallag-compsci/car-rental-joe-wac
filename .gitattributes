@@ -1,0 +1,12 @@
+# Normalize line endings for text so Windows and macOS teammates don't fight
+* text=auto
+
+# Never apply line-ending conversion to binary files — it corrupts them
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
