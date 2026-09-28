@@ -13,6 +13,7 @@ export const carCategories = [
   { id: 3, name: 'SUV' },
   { id: 4, name: 'Luxury' },
   { id: 5, name: 'Van' },
+  { id: 6, name: 'DaBaby' },
 ]
 
 export const cars = [
@@ -32,16 +33,16 @@ export const cars = [
   },
   {
     id: 2,
-    category_id: 1,
-    make: 'Nissan',
-    model: 'Versa',
-    year: 2022,
-    color: 'White',
-    seats: 5,
-    transmission: 'automatic',
+    category_id: 6,
+    make: 'DaBaby',
+    model: 'Mobile',
+    year: 2019,
+    color: 'Brown',
+    seats: 1,
+    transmission: 'AutoManual',
     mileage: 31780,
-    daily_rate: 35,
-    image_url: 'https://placehold.co/600x400?text=Nissan+Versa',
+    daily_rate: 500,
+    image_url: 'https://lede-admin.dailydot.com/wp-content/uploads/sites/69/2024/07/dababy-convertible.jpg',
     is_active: true,
   },
   {
