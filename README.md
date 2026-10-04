@@ -1,14 +1,32 @@
 # CarRental
 
-Front end for a car rental website. React + Vite, plain CSS.
+Car rental website. React + Vite front end, Flask API, Supabase database.
 
-This is the **visual layer only** — there is no authentication, no real booking
-logic, and no backend. Every page renders from hard-coded mock data. Supabase
-and auth get wired up later.
+```
+React (my-react-app/)  ──HTTP──>  Flask (api/)  ──>  Supabase (Postgres + Auth)
+```
+
+**Current state:** the Flask API and database are live and working. The React
+pages still render from `mockCars.js` — connecting them to the API is the next
+piece of work.
 
 ## Running it
 
-The app lives in the `my-react-app/` folder, not the repo root:
+You need **two terminals**.
+
+**Terminal 1 — the API:**
+
+```bash
+cd api
+python -m venv .venv                     # first time only
+.venv\Scripts\activate                   # Windows
+source .venv/bin/activate                # macOS / Linux
+pip install -r requirements.txt          # first time only
+cp .env.example .env                     # first time only, then paste your keys
+python run.py
+```
+
+**Terminal 2 — the front end:**
 
 ```bash
 cd my-react-app
@@ -16,7 +34,27 @@ npm install
 npm run dev
 ```
 
-Then open the URL Vite prints (usually http://localhost:5173).
+Then open http://localhost:5173.
+
+To check everything is wired up correctly:
+
+```bash
+cd api && python verify.py
+```
+
+## Database
+
+Run these in the Supabase SQL Editor (dashboard → SQL Editor → New query →
+paste → Run), in order:
+
+| File | What it does |
+| --- | --- |
+| `supabase/001_schema_and_seed.sql` | Tables + the 12 seed cars |
+| `supabase/002_functions.sql` | Availability search, server-side pricing |
+| `supabase/003_rls.sql` | Row Level Security — **required before deploying** |
+
+After 003, do the two manual steps in its Section 8: make yourself an admin,
+and claim the seed bookings so they appear under your account.
 
 Other commands, all run from `my-react-app/`:
 
@@ -38,14 +76,47 @@ Other commands, all run from `my-react-app/`:
 | `/login` | Log in (UI only) |
 | `/admin` | Fleet admin dashboard (UI only) |
 
+## API endpoints
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/api/health` | — | Diagnostics |
+| GET | `/api/categories` | — | All categories |
+| GET | `/api/cars` | — | `?category=3&sort=price-asc&pickup=&return=` |
+| GET | `/api/cars/:id` | — | One car |
+| GET | `/api/bookings` | ✅ | The caller's own bookings |
+| POST | `/api/bookings` | ✅ | `{ car_id, pickup_at, return_at }` |
+| POST | `/api/bookings/:id/cancel` | ✅ | Sets status to `cancelled` |
+
+See [api/README.md](api/README.md) for the full backend guide.
+
 ## Project layout
 
 ```
 my-react-app/src/
-  data/mockCars.js     all mock data + small helpers — the file to swap for Supabase
-  components/          CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer, ScrollToTop
+  data/mockCars.js     mock data — still what the pages render from
+  api/                 client.js, cars.js, bookings.js — calls to the Flask API
+  hooks/useAsync.js    loading / error / data, with request cancellation
+  components/          CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer
   pages/               one file per route
   index.css            all styling; design tokens live at the top in :root
+
+api/
+  run.py               dev entry point
+  verify.py            stack self-check
+  app/
+    config.py          env loading + startup validation
+    supabase_client.py anonymous / user / admin clients
+    auth.py            JWT verification, @require_auth
+    queries.py         every database call
+    validation.py      input parsing
+    errors.py          one JSON error shape
+    routes/            health, cars, bookings
+
+supabase/
+  001_schema_and_seed.sql
+  002_functions.sql
+  003_rls.sql
 ```
 
 ## Design notes
@@ -57,23 +128,33 @@ my-react-app/src/
 - Responsive: single column on phones, grid on desktop.
 - No Tailwind or UI libraries, so anyone on the team can edit the CSS directly.
 
-## Before we connect Supabase
+## What's left to do
 
-1. **Filters live in the URL** (`/cars?category=3&sort=price-asc`), not in
-   component state. Read those params and push them into the query rather than
-   filtering the array client-side.
-2. **Dates are collected but don't filter anything yet.** There's no
-   availability data in the mock. Real availability means querying `bookings`
-   for overlapping date ranges — the main missing piece of logic.
-3. **`is_active` is only respected on `/cars`.** Hitting `/cars/:id` directly
-   still renders an inactive car. Needs a guard.
-4. **`Bookings` and `Admin` keep local copies of the mock data** so their
-   buttons visibly respond. Both reset on refresh — replace with fetched data
-   plus a real mutation.
-5. **Money is whole dollars.** If the real schema uses cents, `formatMoney` in
-   `mockCars.js` is the one place to change.
-6. **`BrowserRouter` needs an SPA rewrite on the host.** Fine in dev, but static
-   hosting needs a catch-all to `index.html` or `/cars/9` will 404.
+1. **Connect the React pages to the API.** Nothing in `src/pages` imports
+   `src/api` yet, so the UI still runs entirely on `mockCars.js`. The calls
+   and the `useAsync` hook are written and tested — the pages need loading and
+   error states adding. Do `/cars` first as the reference pattern.
+2. **Authentication.** The login page is visual only. Once Supabase auth is
+   wired up, call `setAccessToken()` from `src/api/client.js` after login so
+   requests carry the JWT.
+3. **Admin routes.** The admin page's toggle and Edit buttons are UI only.
+   The API has no admin endpoints yet; `get_admin_client()` is ready for them.
+4. **Deployment.** `BrowserRouter` needs a host-side catch-all rewrite to
+   `index.html`, or `/cars/9` will 404. Flask needs hosting separately from
+   the static front end.
+
+## Notes for whoever picks this up
+
+- **Filters live in the URL** (`/cars?category=3&sort=price-asc`), not in
+  component state, so filtered views are shareable and the params map straight
+  onto the API's query string.
+- **Never trust a price from the client.** `POST /api/bookings` deliberately
+  ignores `total_price`; a database trigger recomputes it from the car's rate.
+- **RLS is the security boundary, not the Flask code.** The React app will
+  hold the anon key, so it can call Supabase directly and bypass Flask
+  entirely. Any rule that matters belongs in a policy in `003_rls.sql`.
+- **Money is whole dollars.** If the schema moves to cents, `formatMoney` in
+  `mockCars.js` is the one place to change on the front end.
 
 ## Database columns
 

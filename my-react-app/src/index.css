@@ -511,7 +511,9 @@ select {
 
 .category-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* auto-fit rather than a fixed count, so adding or removing a category
+     doesn't leave an orphan tile on its own row. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
 }
 
