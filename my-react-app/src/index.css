@@ -312,6 +312,17 @@ select {
   color: var(--text-muted);
 }
 
+/* Role pill next to the profile picture. Admin is inverted to stand out. */
+.badge-role-admin {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.badge-role-customer {
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+}
+
 .badge-pending {
   background: var(--status-pending-bg);
   color: var(--status-pending-fg);
@@ -364,10 +375,50 @@ select {
   letter-spacing: -0.03em;
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* --- Signed-in user: role pill, Google photo, Log out ------------------- */
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-link {
+  display: inline-flex;
+  border-radius: 50%;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.avatar-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px var(--border-strong);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-accent);
+  object-fit: cover;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .nav-link {
@@ -435,6 +486,11 @@ button.nav-link {
 
   .nav-menu .nav-link {
     padding: 12px 14px;
+  }
+
+  /* Log out lives in the drop-down on phones (see Nav.jsx). */
+  .user-menu-logout {
+    display: none;
   }
 }
 

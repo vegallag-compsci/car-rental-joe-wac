@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import UserMenu from './UserMenu'
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -22,7 +23,7 @@ export default function Nav() {
 
   // Rendered twice: desktop row + mobile drop-down. Nothing auth-related
   // shows while a saved login is still being checked, to avoid a flicker
-  // from "Log in" to "Log out".
+  // from "Log in" to the profile picture.
   function renderLinks() {
     return (
       <>
@@ -36,17 +37,6 @@ export default function Nav() {
             {link.label}
           </NavLink>
         ))}
-
-        {status === 'signedIn' && (
-          <button
-            type="button"
-            className="nav-link"
-            title={`Signed in as ${user.email}`}
-            onClick={handleSignOut}
-          >
-            Log out
-          </button>
-        )}
 
         {status === 'signedOut' && (
           <NavLink to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>
@@ -64,20 +54,33 @@ export default function Nav() {
           CarRental
         </Link>
 
-        <nav className="nav-links">{renderLinks()}</nav>
+        <div className="nav-right">
+          <nav className="nav-links">{renderLinks()}</nav>
 
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={menuOpen}
-          aria-label="Toggle menu"
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? '✕' : '☰'}
-        </button>
+          {status === 'signedIn' && <UserMenu user={user} onSignOut={handleSignOut} />}
+
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-expanded={menuOpen}
+            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </div>
 
-      <nav className={menuOpen ? 'nav-menu open' : 'nav-menu'}>{renderLinks()}</nav>
+      <nav className={menuOpen ? 'nav-menu open' : 'nav-menu'}>
+        {renderLinks()}
+        {/* On phones the bar only has room for the role and picture, so
+            Log out moves into the drop-down. */}
+        {status === 'signedIn' && (
+          <button type="button" className="nav-link" onClick={handleSignOut}>
+            Log out
+          </button>
+        )}
+      </nav>
     </header>
   )
 }

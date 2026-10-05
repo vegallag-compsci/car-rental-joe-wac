@@ -180,7 +180,7 @@ def me():
             "email": g.user.email,
             # Google fills these in on the Supabase user.
             "name": metadata.get("full_name") or metadata.get("name"),
-            "avatar_url": metadata.get("avatar_url"),
+            "avatar_url": metadata.get("avatar_url") or metadata.get("picture"),
             "role": queries.get_role(g.db, g.user_id),
         }
     )
