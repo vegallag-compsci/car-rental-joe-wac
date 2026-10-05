@@ -27,13 +27,13 @@ export const REVIEWS_NOTE = 'Hear from real people who have used our services!'
 export const reviews = [
   {
     id: 1,
-    name: 'Maya Thompson',
-    avatar_url: 'https://i.pravatar.cc/150?img=47',
+    name: 'Professor Dinkleferd',
+    avatar_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSohJCR1HA0_1hh0J7TSOYHGHYAoPrOF5UPcVPX5Yp2Wg&s=10',
     rating: 5,
     date: '2026-09-28',
     car: 'Toyota Camry',
-    title: 'Easiest rental I have ever done',
-    body: 'Booked on my phone in about a minute, and the car was spotless at pickup. The price I saw was exactly what I paid. I will be back.',
+    title: 'Great for Ferding',
+    body: 'My car was great i got sendy all over it.',
   },
   {
     id: 2,

@@ -43,7 +43,7 @@ export default function Admin() {
         <p>Manage the fleet, approve bookings, and control who has admin access.</p>
       </div>
 
-      <div className="tabs" role="tablist" aria-label="Admin sections">
+      <div className="tabs glass" role="tablist" aria-label="Admin sections">
         {TABS.map((tab) => (
           <button
             key={tab.id}

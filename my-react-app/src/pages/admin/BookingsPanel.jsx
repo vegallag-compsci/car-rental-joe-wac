@@ -102,7 +102,7 @@ export default function BookingsPanel() {
         <div className="empty-state glass">No bookings here.</div>
       ) : (
         <div className="table-wrap glass">
-          <table>
+          <table className="table-stack">
             <thead>
               <tr>
                 <th>#</th>
@@ -120,17 +120,22 @@ export default function BookingsPanel() {
                 const busy = savingId === booking.id
                 return (
                   <tr key={booking.id}>
-                    <td className="faint">{booking.id}</td>
-                    <td>{getCarLabel(booking.car)}</td>
-                    <td>{booking.customer_email ?? <span className="faint">No owner</span>}</td>
-                    <td>
-                      {formatDate(booking.pickup_at)} → {formatDate(booking.return_at)}{' '}
-                      <span className="faint">
-                        · {nights} {nights === 1 ? 'night' : 'nights'}
+                    <td data-label="#" className="faint">{booking.id}</td>
+                    <td data-label="Car">{getCarLabel(booking.car)}</td>
+                    <td data-label="Customer">
+                      {booking.customer_email ?? <span className="faint">No owner</span>}
+                    </td>
+                    <td data-label="Dates">
+                      {/* One wrapper so the stacked phone layout keeps dates and nights together. */}
+                      <span>
+                        {formatDate(booking.pickup_at)} → {formatDate(booking.return_at)}{' '}
+                        <span className="faint">
+                          · {nights} {nights === 1 ? 'night' : 'nights'}
+                        </span>
                       </span>
                     </td>
-                    <td>{formatMoney(booking.total_price)}</td>
-                    <td>
+                    <td data-label="Total">{formatMoney(booking.total_price)}</td>
+                    <td data-label="Status">
                       <StatusBadge status={booking.status} />
                     </td>
                     <td>
@@ -149,7 +154,7 @@ export default function BookingsPanel() {
                             <button
                               key={step.to}
                               type="button"
-                              className={step.to === 'confirmed' ? 'btn btn-sm' : 'btn btn-ghost btn-sm'}
+                              className={step.to === 'confirmed' ? 'btn btn-sm' : 'btn btn-secondary btn-sm'}
                               disabled={busy}
                               onClick={() => moveTo(booking, step.to)}
                             >

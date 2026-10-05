@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cancelBooking, getMyBookings } from '../api/bookings'
+import CarImage from '../components/CarImage'
 import LoadState from '../components/LoadState'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../auth/AuthContext'
@@ -15,7 +16,7 @@ function EmptyState({ message, linkTo, linkText }) {
   return (
     <div className="empty-state glass">
       <p>{message}</p>
-      <Link to={linkTo} className="btn" style={{ marginTop: 16 }}>
+      <Link to={linkTo} className="btn">
         {linkText}
       </Link>
     </div>
@@ -109,7 +110,7 @@ function BookingList() {
 
           return (
             <article key={booking.id} className="booking-card glass">
-              <img
+              <CarImage
                 className="booking-card-image"
                 src={car?.image_url}
                 alt={getCarLabel(car)}
@@ -138,7 +139,7 @@ function BookingList() {
                 {cancellable.includes(booking.status) && (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-secondary btn-sm"
                     disabled={cancellingId === booking.id}
                     onClick={() => handleCancel(booking.id)}
                   >

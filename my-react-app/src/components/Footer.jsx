@@ -6,7 +6,7 @@ const year = new Date().getFullYear()
 export default function Footer() {
   return (
     <footer className="footer">
-      <div className="footer-inner">
+      <div className="footer-inner glass">
         <span>© {year} CarRental — student project</span>
         <div className="footer-links">
           <Link to="/cars">Find a car</Link>

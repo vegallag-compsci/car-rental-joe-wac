@@ -3,11 +3,19 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { createBooking } from '../api/bookings'
 import { useAuth } from '../auth/AuthContext'
 import { getCar } from '../api/cars'
+import CarImage from '../components/CarImage'
 import CategoryBadge from '../components/CategoryBadge'
 import LoadState from '../components/LoadState'
 import { useAsync } from '../hooks/useAsync'
 import { useCategories } from '../hooks/useCategories'
-import { dateInDays, daysBetween, formatMoney } from '../utils/format'
+import {
+  dateInDays,
+  daysBetween,
+  formatMileage,
+  formatMoney,
+  formatSeats,
+  formatTransmission,
+} from '../utils/format'
 
 // Turn a failed createBooking call into something a customer can act on.
 function bookingErrorMessage(error) {
@@ -45,7 +53,7 @@ export default function CarDetails() {
       <div className="page">
         <div className="empty-state glass">
           <p>We couldn&apos;t find that car.</p>
-          <Link to="/cars" className="btn" style={{ marginTop: 16 }}>
+          <Link to="/cars" className="btn">
             Back to all cars
           </Link>
         </div>
@@ -94,8 +102,8 @@ export default function CarDetails() {
     { label: 'Year', value: car.year },
     { label: 'Color', value: car.color },
     { label: 'Seats', value: car.seats },
-    { label: 'Transmission', value: car.transmission },
-    { label: 'Mileage', value: `${car.mileage.toLocaleString('en-US')} mi` },
+    { label: 'Transmission', value: formatTransmission(car.transmission) },
+    { label: 'Mileage', value: formatMileage(car.mileage) },
     { label: 'Category', value: getCategoryName(car.category_id) },
   ]
 
@@ -107,32 +115,25 @@ export default function CarDetails() {
 
       <div className="detail-layout">
         <div>
-          <img
+          <CarImage
             className="detail-image"
             src={car.image_url}
             alt={`${car.make} ${car.model}`}
           />
 
-          <div className="page-header" style={{ marginTop: 28 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                flexWrap: 'wrap',
-              }}
-            >
+          <div className="page-header detail-header">
+            <div className="detail-title">
               <h1>
                 {car.make} {car.model}
               </h1>
               <CategoryBadge categoryId={car.category_id} />
             </div>
             <p>
-              {car.year} · {car.seats} seats · {car.transmission}
+              {car.year} · {formatSeats(car.seats)} · {formatTransmission(car.transmission)}
             </p>
           </div>
 
-          <dl className="spec-list">
+          <dl className="spec-list glass">
             {specs.map((spec) => (
               <div key={spec.label} className="spec">
                 <dt>{spec.label}</dt>
@@ -142,7 +143,7 @@ export default function CarDetails() {
           </dl>
         </div>
 
-        <aside className="booking-box glass">
+        <aside className="booking-box glass glass-medium">
           <div className="booking-box-rate">
             <div className="price">
               <strong>{formatMoney(car.daily_rate)}</strong>
@@ -150,41 +151,45 @@ export default function CarDetails() {
             </div>
           </div>
 
-          <div className="field">
-            <label htmlFor="booking-pickup">Pickup date</label>
-            <input
-              id="booking-pickup"
-              type="date"
-              value={pickup}
-              min={dateInDays(0)}
-              // Bookings open at most a year ahead (enforce_booking_limits in 002).
-              max={dateInDays(365)}
-              onChange={(e) => setPickup(e.target.value)}
-            />
+          <div className="booking-dates">
+            <div className="field">
+              <label htmlFor="booking-pickup">Pickup date</label>
+              <input
+                id="booking-pickup"
+                type="date"
+                value={pickup}
+                min={dateInDays(0)}
+                // Bookings open at most a year ahead (enforce_booking_limits in 002).
+                max={dateInDays(365)}
+                onChange={(e) => setPickup(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="booking-return">Return date</label>
+              <input
+                id="booking-return"
+                type="date"
+                value={dropoff}
+                min={pickup}
+                onChange={(e) => setDropoff(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="field">
-            <label htmlFor="booking-return">Return date</label>
-            <input
-              id="booking-return"
-              type="date"
-              value={dropoff}
-              min={pickup}
-              onChange={(e) => setDropoff(e.target.value)}
-            />
-          </div>
+          <div className="price-breakdown">
+            <div className="summary-row">
+              <span>
+                {formatMoney(car.daily_rate)} × {days}{' '}
+                {days === 1 ? 'day' : 'days'}
+              </span>
+              <span>{formatMoney(total)}</span>
+            </div>
 
-          <div className="summary-row">
-            <span>
-              {formatMoney(car.daily_rate)} × {days}{' '}
-              {days === 1 ? 'day' : 'days'}
-            </span>
-            <span>{formatMoney(total)}</span>
-          </div>
-
-          <div className="summary-total">
-            <span>Total</span>
-            <strong>{formatMoney(total)}</strong>
+            <div className="summary-total">
+              <span>Total</span>
+              <strong>{formatMoney(total)}</strong>
+            </div>
           </div>
 
           <button
@@ -197,11 +202,11 @@ export default function CarDetails() {
           </button>
 
           {bookingError ? (
-            <p className="form-error" role="alert" style={{ textAlign: 'center', marginBottom: 0 }}>
+            <p className="form-error" role="alert">
               {bookingErrorMessage(bookingError)}
             </p>
           ) : (
-            <p className="faint" style={{ fontSize: '0.82rem', textAlign: 'center' }}>
+            <p className="form-hint booking-note">
               {days === 0
                 ? 'Pick a return date after your pickup date.'
                 : 'You won’t be charged yet.'}

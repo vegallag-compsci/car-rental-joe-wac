@@ -8,7 +8,7 @@ export default function ConfirmButton({
   confirmLabel = 'Confirm',
   onConfirm,
   disabled = false,
-  className = 'btn btn-ghost btn-sm',
+  className = 'btn btn-secondary btn-sm',
 }) {
   const [asking, setAsking] = useState(false)
 
@@ -25,7 +25,7 @@ export default function ConfirmButton({
         >
           {confirmLabel}
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAsking(false)}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAsking(false)}>
           Back
         </button>
       </span>

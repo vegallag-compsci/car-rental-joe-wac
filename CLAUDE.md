@@ -50,8 +50,11 @@ my-react-app/                 React 19, Vite 8, react-router-dom 7, oxlint. No U
   src/App.jsx                 routes: / /cars /cars/:id /bookings /login /admin *
   src/pages/                  one file per route
   src/components/             CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer, ScrollToTop,
-                              LoadState (shared loading / error + retry placeholder)
-  src/utils/format.js         formatMoney, formatDate, daysBetween, dateInDays, getCarLabel
+                              LoadState (skeleton while loading / error + retry), CarGridSkeleton,
+                              ThemeToggle, icons.jsx (inline SVG icons)
+  src/utils/format.js         formatMoney, formatMileage, formatDate, daysBetween, dateInDays, getCarLabel
+  src/utils/theme.js          light/dark choice (data-theme on <html>, localStorage 'theme')
+  src/hooks/useOverlay.js     focus + Escape handling for the nav drawer and the filter bottom sheet
   src/data/reviews.js         /reviews content (sample reviews, static, edited by hand; not in the DB)
   src/api/client.js           fetch wrapper: base URL, Bearer token, ApiError(status, code)
   src/api/cars.js, bookings.js  one function per endpoint
@@ -60,7 +63,7 @@ my-react-app/                 React 19, Vite 8, react-router-dom 7, oxlint. No U
   src/api/auth.js             googleLoginUrl, refreshSession, getMe, logout
   src/auth/                   session.js (token storage + refresh), AuthProvider.jsx, AuthContext.js (useAuth)
   src/pages/AuthCallback.jsx  /auth/callback: reads the #tokens Flask sends back after Google
-  src/index.css               ALL styling; design tokens in :root, dark mode via prefers-color-scheme
+  src/index.css               ALL styling; tokens in :root as light-dark(), sections numbered 1-7 at the top
   vite.config.js              port 5173, strictPort (see gotchas)
 
 api/                          Flask 3, flask-cors, supabase-py 2, python-dotenv. venv at api/.venv
@@ -161,9 +164,21 @@ image_url}`. That field is null if RLS hides the car because it was deactivated.
   in sync).
 - **Money:** `daily_rate` / `total_price` are `numeric(10,2)` and display as
   whole dollars via `formatMoney`.
-- **CSS:** plain CSS in `index.css`. Black/white/gray palette, frosted
-  "liquid glass" panels (`backdrop-filter`), light and dark mode via tokens
-  on `:root`. Responsive: one column on phones.
+- **CSS:** plain CSS in `index.css`, glassmorphism with a sapphire/arctic
+  palette over a fixed aurora background. Rules use tokens only (colors,
+  spacing, radius, fluid type); every color token is `light-dark(light, dark)`,
+  driven by `color-scheme`, which follows the OS until the theme toggle sets
+  `data-theme` on `<html>`. Primitives are classes, not React wrappers:
+  `.glass` (+ `.glass-medium` / `.glass-strong`), `.btn` / `.btn-secondary` /
+  `.btn-sm` / `.icon-btn`, `.field`, `.badge-*`, `.chip`, `.toggle`, `.tabs`,
+  `.table-stack` (rows become cards on phones; give each `td` a
+  `data-label`), `.skeleton`, `.empty-state`, `.form-error`. Mobile first with
+  min-width queries at 640 / 768 / 1024 / 1280px; 44px touch targets. Keep
+  text at 4.5:1: light-mode glass is deliberately ~60% white. No inline
+  `style` except data-driven values (review bar widths).
+- **Glass performance:** only top-level panels get `backdrop-filter`.
+  Anything inside a glass panel uses `--surface-tint`; nested blurs cost GPU
+  time and only blur their parent.
 - **SQL changes:** edit the numbered file (keep 002/003 re-runnable with
   `create or replace` / `drop ... if exists`), add or adjust tests in
   `supabase/local/tests.sql`, run them, and tell the user to re-run the file in
@@ -207,6 +222,11 @@ superuser, which bypasses RLS and would make every test pass.
   error.
 - Vite inlines `VITE_*` env vars at build time, so restart `npm run dev` after
   editing `.env.local`.
+- An element with `backdrop-filter` (or `transform`, `filter`) becomes the
+  containing block for `position: fixed` descendants. That is why the nav
+  drawer is a sibling of `.nav-bar`, not inside it, and why pages must not
+  animate `transform`/`opacity` on `.page` (the filter bottom sheet is fixed
+  inside it, and opacity < 1 also stops glass from blurring the background).
 - `BrowserRouter` needs a host-side catch-all rewrite to `index.html` when
   deployed, or deep links like `/cars/9` 404.
 - The seed bookings have no owner, so "My bookings" is empty for every user

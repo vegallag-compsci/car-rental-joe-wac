@@ -23,7 +23,7 @@ export default function SearchBar() {
   }
 
   return (
-    <form className="search-bar glass" onSubmit={handleSubmit}>
+    <form className="search-bar glass glass-medium" onSubmit={handleSubmit}>
       <div className="field">
         <label htmlFor="search-pickup">Pickup date</label>
         <input

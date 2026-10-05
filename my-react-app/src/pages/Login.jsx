@@ -24,23 +24,23 @@ export default function Login() {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card glass">
+      <div className="auth-card glass glass-medium">
         <div>
           <h1>Welcome</h1>
-          <p className="muted" style={{ marginTop: 6 }}>
+          <p className="auth-intro">
             Sign in with Google to book cars and manage your reservations.
           </p>
         </div>
 
         {error && (
-          <p className="form-error" role="alert" style={{ marginBottom: 0 }}>
+          <p className="form-error" role="alert">
             {error}
           </p>
         )}
 
         <button
           type="button"
-          className="btn btn-ghost btn-block"
+          className="btn btn-secondary btn-block"
           disabled={status === 'loading'}
           onClick={() => signIn(next)}
         >

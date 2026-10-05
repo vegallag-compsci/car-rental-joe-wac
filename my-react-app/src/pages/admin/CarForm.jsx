@@ -159,7 +159,7 @@ export default function CarForm({ car, onSaved, onCancel }) {
       )}
 
       <div className="form-actions">
-        <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={saving}>
+        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={saving}>
           Cancel
         </button>
         <button type="submit" className="btn" disabled={saving}>
@@ -168,7 +168,7 @@ export default function CarForm({ car, onSaved, onCancel }) {
       </div>
 
       {!car && (
-        <p className="faint" style={{ fontSize: '0.82rem' }}>
+        <p className="form-hint">
           New cars start inactive. Switch them on in the table when they&apos;re ready to book.
         </p>
       )}

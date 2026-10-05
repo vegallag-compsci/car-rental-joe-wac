@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
+import CarImage from './CarImage'
 import CategoryBadge from './CategoryBadge'
-import { formatMoney } from '../utils/format'
+import { formatMileage, formatMoney, formatSeats, formatTransmission } from '../utils/format'
 
 // `search` is an optional query string (e.g. "?pickup=...&return=...") so the
 // details page can pre-fill the dates the user already searched for.
 export default function CarCard({ car, search = '' }) {
   return (
     <article className="car-card glass">
-      <img
+      <CarImage
         className="car-card-image"
         src={car.image_url}
         alt={`${car.make} ${car.model}`}
@@ -17,16 +18,16 @@ export default function CarCard({ car, search = '' }) {
       <div className="car-card-body">
         <div className="car-card-head">
           <h3>
-            {car.make} {car.model}{' '}
-            <span className="faint">{car.year}</span>
+            {car.make} {car.model} <span className="faint">{car.year}</span>
           </h3>
           <CategoryBadge categoryId={car.category_id} />
         </div>
 
-        <div className="car-specs">
-          <span>{car.seats} seats</span>
-          <span style={{ textTransform: 'capitalize' }}>{car.transmission}</span>
-        </div>
+        <ul className="spec-pills" aria-label="Key specs">
+          <li>{formatSeats(car.seats)}</li>
+          <li>{formatTransmission(car.transmission)}</li>
+          <li>{formatMileage(car.mileage)}</li>
+        </ul>
 
         <div className="car-card-footer">
           <div className="price">

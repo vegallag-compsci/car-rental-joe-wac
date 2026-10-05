@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useOverlay } from '../hooks/useOverlay'
+import { CloseIcon, MenuIcon } from './icons'
+import RoleBadge from './RoleBadge'
+import ThemeToggle from './ThemeToggle'
 import UserMenu from './UserMenu'
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
+  const { triggerRef, panelRef } = useOverlay(menuOpen, closeMenu)
   const { status, user, signOut } = useAuth()
   const navigate = useNavigate()
 
@@ -17,30 +23,25 @@ export default function Nav() {
   ]
 
   async function handleSignOut() {
-    setMenuOpen(false)
+    closeMenu()
     await signOut()
     navigate('/')
   }
 
-  // Rendered twice: desktop row + mobile drop-down. Nothing auth-related
+  // Rendered twice: desktop bar + mobile drawer. Nothing auth-related
   // shows while a saved login is still being checked, to avoid a flicker
   // from "Log in" to the profile picture.
   function renderLinks() {
     return (
       <>
         {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
+          <NavLink key={link.to} to={link.to} className="nav-link" onClick={closeMenu}>
             {link.label}
           </NavLink>
         ))}
 
         {status === 'signedOut' && (
-          <NavLink to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>
+          <NavLink to="/login" className="nav-link" onClick={closeMenu}>
             Log in
           </NavLink>
         )}
@@ -50,32 +51,55 @@ export default function Nav() {
 
   return (
     <header className="nav">
-      <div className="nav-inner">
-        <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
+      <div className="nav-bar glass glass-medium">
+        <Link to="/" className="nav-logo" onClick={closeMenu}>
           CarRental
         </Link>
 
-        <div className="nav-right">
-          <nav className="nav-links">{renderLinks()}</nav>
+        <nav className="nav-links" aria-label="Main">
+          {renderLinks()}
+        </nav>
 
+        <div className="nav-actions">
           {status === 'signedIn' && <UserMenu user={user} onSignOut={handleSignOut} />}
-
+          <ThemeToggle />
           <button
+            ref={triggerRef}
             type="button"
-            className="nav-toggle"
+            className="icon-btn nav-menu-button"
             aria-expanded={menuOpen}
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen((open) => !open)}
+            aria-controls="nav-drawer"
+            aria-label="Open menu"
+            onClick={() => setMenuOpen(true)}
           >
-            {menuOpen ? '✕' : '☰'}
+            <MenuIcon />
           </button>
         </div>
       </div>
 
-      <nav className={menuOpen ? 'nav-menu open' : 'nav-menu'}>
+      {/* The drawer lives outside .nav-bar: a backdrop-filter ancestor would
+          become its containing block and trap the fixed positioning. */}
+      <div className="scrim nav-scrim" data-open={menuOpen} aria-hidden="true" onClick={closeMenu} />
+
+      <nav
+        id="nav-drawer"
+        ref={panelRef}
+        tabIndex={-1}
+        className="nav-drawer glass glass-strong"
+        data-open={menuOpen}
+        aria-label="Main"
+      >
+        <div className="nav-drawer-head">
+          {status === 'signedIn' && <RoleBadge role={user.role} />}
+          <button type="button" className="icon-btn" aria-label="Close menu" onClick={closeMenu}>
+            <CloseIcon />
+          </button>
+        </div>
+
         {renderLinks()}
-        {/* On phones the bar only has room for the role and picture, so
-            Log out moves into the drop-down. */}
+
+        {/* On small screens the bar only has room for the picture, so
+            Log out lives in the drawer. */}
         {status === 'signedIn' && (
           <button type="button" className="nav-link" onClick={handleSignOut}>
             Log out

@@ -1,87 +1,190 @@
 /* ==========================================================================
    CarRental — global styles
-   Plain CSS, no frameworks. Design tokens live in :root so colors can be
-   changed in one place. Dark mode is handled by overriding those same tokens.
+   Plain CSS, no frameworks. Sapphire / arctic glassmorphism.
+
+     1. Tokens       every color, size and timing; rules below only use these
+     2. Fallbacks    no backdrop-filter, reduced transparency, reduced motion
+     3. Base         reset and element defaults
+     4. Background   the fixed aurora the glass blurs over
+     5. Primitives   glass, buttons, fields, badges, chips, toggle, tabs,
+                     tables, skeletons, empty and error states
+     6. Components   nav, footer, car card, search bar
+     7. Pages        one block per route
+
+   Themes: every color token is light-dark(<light>, <dark>). The browser picks
+   a side from color-scheme, which follows the OS until the theme toggle sets
+   data-theme on <html> (src/utils/theme.js).
+
+   Responsive: mobile first. Base rules target phones; min-width queries at
+   640 / 768 / 1024 / 1280px add columns as space allows.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Tokens
    ========================================================================== */
 
 :root {
-  /* Surfaces & text */
-  --bg: #f6f6f7;
-  --bg-accent: #ececee;
-  --surface: rgba(255, 255, 255, 0.72);
-  --surface-solid: #ffffff;
-  --text: #0e0e11;
-  --text-muted: #5f6068;
-  --text-faint: #8b8d95;
+  color-scheme: light dark;
 
-  /* Lines, glow, shadow */
-  --border: rgba(14, 14, 17, 0.1);
-  --border-strong: rgba(14, 14, 17, 0.18);
-  --shadow-sm: 0 1px 2px rgba(14, 14, 17, 0.05);
-  --shadow: 0 8px 24px -8px rgba(14, 14, 17, 0.14);
-  --shadow-lg: 0 20px 48px -16px rgba(14, 14, 17, 0.24);
+  /* --- Surfaces & text ---------------------------------------------------- */
+  --bg: light-dark(#e9f1f9, #040a17);
+  --surface-solid: light-dark(#f6f9fd, #0c1628); /* opaque stand-in for glass */
+  --surface-tint: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.06)); /* fills inside glass */
+  --field-bg: light-dark(rgba(255, 255, 255, 0.85), rgba(4, 10, 23, 0.5));
+  --row-hover: light-dark(rgba(20, 80, 184, 0.05), rgba(143, 211, 255, 0.05));
+  --scrim: light-dark(rgba(10, 26, 51, 0.32), rgba(0, 0, 0, 0.55));
+  --skeleton: light-dark(rgba(10, 26, 51, 0.07), rgba(255, 255, 255, 0.06));
+  --skeleton-shine: light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.14));
 
-  /* Primary action = inverted text color, keeps the palette black/white */
-  --accent: #0e0e11;
-  --accent-text: #ffffff;
+  /* All three pass 4.5:1 on every glass level in both themes. */
+  --text: light-dark(#0a1a33, #eaf3ff);
+  --text-muted: light-dark(#34445e, #b4c4da);
+  --text-faint: light-dark(#53627a, #94a8c4);
 
-  /* Status badge colors (subtle, desaturated) */
-  --status-pending-bg: rgba(191, 140, 0, 0.12);
-  --status-pending-fg: #8a6500;
-  --status-confirmed-bg: rgba(0, 110, 200, 0.12);
-  --status-confirmed-fg: #0a5c9e;
-  --status-active-bg: rgba(0, 140, 90, 0.12);
-  --status-active-fg: #0a6b47;
-  --status-returned-bg: rgba(14, 14, 17, 0.07);
-  --status-returned-fg: #5f6068;
-  --status-cancelled-bg: rgba(190, 40, 50, 0.1);
-  --status-cancelled-fg: #9c2731;
+  --line: light-dark(rgba(10, 26, 51, 0.1), rgba(255, 255, 255, 0.1));
+  --line-strong: light-dark(rgba(10, 26, 51, 0.2), rgba(255, 255, 255, 0.2));
+  /* Input and switch outlines need 3:1 against their fill (WCAG 1.4.11). */
+  --field-border: light-dark(rgba(10, 26, 51, 0.5), rgba(255, 255, 255, 0.4));
 
-  /* Shape & motion */
-  --radius-sm: 10px;
-  --radius: 16px;
-  --radius-lg: 24px;
+  /* --- Accent: sapphire by day, arctic ice by night ----------------------- */
+  --accent: light-dark(#1450b8, #8fd3ff);
+  --accent-hover: light-dark(#0f3d8f, #b8e5ff);
+  --on-accent: light-dark(#ffffff, #04122a);
+  --accent-soft: light-dark(rgba(20, 80, 184, 0.1), rgba(143, 211, 255, 0.14));
+  --accent-gradient: linear-gradient(
+    135deg,
+    light-dark(#0f3d8f, #5aa9ff),
+    light-dark(#1d6fd1, #9be3ff)
+  );
+  --glow: light-dark(rgba(20, 80, 184, 0.3), rgba(110, 190, 255, 0.35));
+  --focus-ring: var(--accent);
+
+  /* --- Status ------------------------------------------------------------- */
+  --success: light-dark(#0b6b4a, #6fe0b4);
+  --success-soft: light-dark(rgba(11, 107, 74, 0.12), rgba(111, 224, 180, 0.14));
+  --warning: light-dark(#8a5a00, #f2c46b);
+  --warning-soft: light-dark(rgba(191, 140, 0, 0.14), rgba(242, 196, 107, 0.14));
+  --error: light-dark(#a3202d, #ff9aa3);
+  --error-soft: light-dark(rgba(190, 40, 50, 0.1), rgba(255, 120, 130, 0.14));
+  --info: light-dark(#1450b8, #8fc2ff);
+  --info-soft: light-dark(rgba(20, 80, 184, 0.1), rgba(143, 194, 255, 0.14));
+
+  /* --- Background aurora -------------------------------------------------- */
+  --aurora-sapphire: light-dark(rgba(110, 160, 255, 0.5), rgba(37, 99, 235, 0.3));
+  --aurora-ice: light-dark(rgba(140, 215, 255, 0.55), rgba(56, 189, 248, 0.18));
+  --aurora-glacier: light-dark(rgba(175, 185, 255, 0.45), rgba(79, 70, 229, 0.22));
+
+  /* --- Glass: three elevations --------------------------------------------
+     Light mode runs more opaque than dark: dark text over a bright, colorful
+     backdrop needs roughly 60% white behind it to keep 4.5:1 contrast. */
+  --glass-subtle: light-dark(rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.07)); /* cards */
+  --glass-medium: light-dark(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.1)); /* nav, sidebars */
+  --glass-strong: light-dark(rgba(247, 250, 255, 0.88), rgba(12, 22, 42, 0.86)); /* drawer, sheets */
+  --blur-subtle: blur(14px) saturate(140%);
+  --blur-medium: blur(18px) saturate(150%);
+  --blur-strong: blur(24px) saturate(160%);
+  --glass-border: light-dark(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.14));
+  --glass-sheen: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.08));
+
+  --shadow-subtle:
+    0 1px 2px light-dark(rgba(10, 26, 51, 0.06), rgba(0, 0, 0, 0.35)),
+    0 8px 24px -12px light-dark(rgba(10, 26, 51, 0.2), rgba(0, 0, 0, 0.6));
+  --shadow-medium: 0 14px 36px -14px light-dark(rgba(10, 26, 51, 0.26), rgba(0, 0, 0, 0.7));
+  --shadow-strong: 0 28px 64px -18px light-dark(rgba(10, 26, 51, 0.36), rgba(0, 0, 0, 0.8));
+
+  /* --- Spacing ------------------------------------------------------------ */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --gutter: clamp(1rem, 4vw, 1.5rem); /* page side padding */
+  --section-gap: clamp(3rem, 7vw, 4.5rem);
+
+  /* --- Radius ------------------------------------------------------------- */
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
   --radius-pill: 999px;
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --transition: 180ms var(--ease);
 
-  --nav-height: 68px;
-  --page-max: 1180px;
+  /* --- Typography (fluid) ------------------------------------------------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto,
+    Helvetica, Arial, sans-serif;
+  --text-xs: 0.8rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.05rem, 1rem + 0.25vw, 1.15rem);
+  --text-xl: clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem);
+  --text-2xl: clamp(1.75rem, 1.4rem + 1.6vw, 2.5rem);
+  --text-3xl: clamp(2.25rem, 1.5rem + 3.8vw, 4.25rem);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --duration: 180ms;
+  --duration-slow: 250ms;
+  --transition: var(--duration) var(--ease);
+
+  /* --- Layout ------------------------------------------------------------- */
+  --page-max: 1240px;
+  --nav-height: 4rem;
+  --sticky-top: calc(var(--nav-height) + 2rem); /* just below the floating nav */
+  --touch: 2.75rem; /* 44px minimum touch target */
 }
 
-@media (prefers-color-scheme: dark) {
+/* Set by the theme toggle; without it the OS preference applies. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   2. Fallbacks
+   ========================================================================== */
+
+/* Without backdrop-filter, translucent panels would show the busy background
+   unblurred behind text, so they turn solid instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
-    --bg: #0b0b0d;
-    --bg-accent: #14141a;
-    --surface: rgba(28, 28, 34, 0.66);
-    --surface-solid: #16161b;
-    --text: #f4f4f6;
-    --text-muted: #a3a4ad;
-    --text-faint: #75767f;
-
-    --border: rgba(255, 255, 255, 0.11);
-    --border-strong: rgba(255, 255, 255, 0.2);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 20px 48px -16px rgba(0, 0, 0, 0.75);
-
-    --accent: #f4f4f6;
-    --accent-text: #0b0b0d;
-
-    --status-pending-bg: rgba(235, 180, 50, 0.16);
-    --status-pending-fg: #e8c168;
-    --status-confirmed-bg: rgba(80, 160, 255, 0.16);
-    --status-confirmed-fg: #86b9f5;
-    --status-active-bg: rgba(60, 200, 140, 0.16);
-    --status-active-fg: #6fdaa8;
-    --status-returned-bg: rgba(255, 255, 255, 0.08);
-    --status-returned-fg: #a3a4ad;
-    --status-cancelled-bg: rgba(255, 100, 110, 0.14);
-    --status-cancelled-fg: #f08c94;
+    --glass-subtle: var(--surface-solid);
+    --glass-medium: var(--surface-solid);
+    --glass-strong: var(--surface-solid);
   }
 }
 
-/* --- Reset ---------------------------------------------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-subtle: var(--surface-solid);
+    --glass-medium: var(--surface-solid);
+    --glass-strong: var(--surface-solid);
+    --blur-subtle: none;
+    --blur-medium: none;
+    --blur-strong: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   3. Base
+   ========================================================================== */
 
 *,
 *::before,
@@ -91,25 +194,13 @@
 
 body {
   margin: 0;
+  min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto,
-    Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Soft ambient glow so the frosted panels have something to blur over */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(60rem 40rem at 15% -10%, var(--bg-accent), transparent 70%),
-    radial-gradient(50rem 35rem at 95% 5%, var(--bg-accent), transparent 70%);
 }
 
 h1,
@@ -143,40 +234,87 @@ select {
   color: inherit;
 }
 
+::selection {
+  background: var(--accent-soft);
+}
+
 :focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* --- Layout helpers ------------------------------------------------------- */
+/* Panels that script focuses when they open (see useOverlay) don't need a ring. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
+/* ==========================================================================
+   4. Background
+   Radial gradients are already soft, so the blobs need no filter: blur()
+   (that would be a full-screen GPU blur). They sit at the edges so the middle
+   of the page, where most text is, stays calm and predictable.
+   ========================================================================== */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 32rem at 0% 0%, var(--aurora-sapphire), transparent 70%),
+    radial-gradient(36rem 30rem at 100% 25%, var(--aurora-ice), transparent 70%),
+    radial-gradient(46rem 34rem at 40% 110%, var(--aurora-glacier), transparent 70%);
+}
+
+/* ==========================================================================
+   5. Primitives
+   ========================================================================== */
+
+/* --- Layout ---------------------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-main {
+  flex: 1;
+}
 
 .page {
+  width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: var(--space-8) var(--gutter) var(--space-16);
 }
 
 .page-header {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-8);
 }
 
 .page-header h1 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: var(--text-2xl);
 }
 
 .page-header p {
-  margin-top: 8px;
+  max-width: 42rem;
+  margin-top: var(--space-2);
   color: var(--text-muted);
 }
 
 .section {
-  margin-top: 64px;
+  margin-top: var(--section-gap);
 }
 
 .section-title {
-  font-size: 1.35rem;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-xl);
 }
+
+/* --- Text utilities -------------------------------------------------------- */
 
 .muted {
   color: var(--text-muted);
@@ -186,1080 +324,329 @@ select {
   color: var(--text-faint);
 }
 
-/* --- Glass panel ---------------------------------------------------------- */
-
-.glass {
-  background: var(--surface);
-  -webkit-backdrop-filter: blur(20px) saturate(1.7);
-  backdrop-filter: blur(20px) saturate(1.7);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
 }
 
-/* --- Buttons -------------------------------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Glass surfaces ---------------------------------------------------------
+   .glass is the subtle level (cards). Add .glass-medium for the nav and
+   sidebars, or .glass-strong for drawers and sheets. Only top-level panels
+   blur: anything inside a glass panel uses --surface-tint instead, because
+   stacked backdrop-filters multiply GPU cost and an inner blur only sees its
+   parent, not the page. */
+
+.glass {
+  background: var(--glass-subtle);
+  -webkit-backdrop-filter: var(--blur-subtle);
+  backdrop-filter: var(--blur-subtle);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-sheen), var(--shadow-subtle);
+}
+
+.glass-medium {
+  background: var(--glass-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  backdrop-filter: var(--blur-medium);
+  box-shadow: var(--glass-sheen), var(--shadow-medium);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  backdrop-filter: var(--blur-strong);
+  box-shadow: var(--glass-sheen), var(--shadow-strong);
+}
+
+/* Dims the page behind a drawer or bottom sheet. Toggled with data-open. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--scrim);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-slow) var(--ease),
+    visibility 0s linear var(--duration-slow);
+}
+
+.scrim[data-open='true'] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--duration-slow) var(--ease);
+}
+
+/* --- Buttons --------------------------------------------------------------- */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 11px 20px;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  padding: 0 var(--space-5);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--accent-text);
-  font-size: 0.94rem;
-  font-weight: 500;
+  color: var(--on-accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition),
-    background var(--transition), border-color var(--transition);
+    background-color var(--transition), border-color var(--transition),
+    color var(--transition);
 }
 
-.btn:hover {
+.btn:not(:disabled):hover {
+  background: var(--accent-hover);
+  box-shadow: 0 8px 22px -8px var(--glow);
   transform: translateY(-1px);
-  box-shadow: var(--shadow);
 }
 
-.btn:active {
-  transform: translateY(0) scale(0.985);
-  box-shadow: var(--shadow-sm);
+.btn:not(:disabled):active {
+  box-shadow: none;
+  transform: scale(0.97);
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+}
+
+/* Secondary reads as glass through a light tint, not a second blur. */
+.btn-secondary {
+  background: var(--surface-tint);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
   box-shadow: none;
 }
 
-.btn-ghost {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--border-strong);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-
-.btn-ghost:hover {
-  border-color: var(--text-faint);
+.btn-sm {
+  min-height: 2.25rem;
+  padding: 0 var(--space-4);
+  font-size: var(--text-xs);
 }
 
 .btn-block {
   width: 100%;
 }
 
-.btn-sm {
-  padding: 7px 14px;
-  font-size: 0.85rem;
+/* Square button holding a single icon (menu, close, theme). */
+.icon-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
 }
 
-/* --- Form fields ---------------------------------------------------------- */
+.icon-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* --- Form fields ----------------------------------------------------------- */
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .field label {
-  font-size: 0.76rem;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
-.field input,
-.field select {
+.field :is(input, select) {
   width: 100%;
-  padding: 10px 12px;
-  background: var(--surface-solid);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  min-height: var(--touch);
+  padding: 0 var(--space-3);
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition);
 }
 
-.field input:hover,
-.field select:hover {
-  border-color: var(--text-faint);
+.field :is(input, select):hover {
+  border-color: var(--text-muted);
 }
 
-.field input:focus,
-.field select:focus {
-  outline: none;
-  border-color: var(--text);
-  box-shadow: 0 0 0 3px var(--border);
+.field :is(input, select):focus-visible {
+  border-color: var(--accent);
+  outline-offset: 1px;
 }
 
-/* --- Badges --------------------------------------------------------------- */
+.field input::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+/* --- Badges ---------------------------------------------------------------- */
 
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 11px;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-size: var(--text-xs);
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .badge-category {
-  background: var(--surface-solid);
-  border: 1px solid var(--border-strong);
-  color: var(--text-muted);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-/* Role pill next to the profile picture. Admin is inverted to stand out. */
 .badge-role-admin {
   background: var(--accent);
-  color: var(--accent-text);
+  color: var(--on-accent);
 }
+
 .badge-role-customer {
-  background: var(--surface-solid);
-  border: 1px solid var(--border-strong);
+  background: var(--surface-tint);
+  border-color: var(--line-strong);
   color: var(--text-muted);
 }
 
 .badge-pending {
-  background: var(--status-pending-bg);
-  color: var(--status-pending-fg);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
+
 .badge-confirmed {
-  background: var(--status-confirmed-bg);
-  color: var(--status-confirmed-fg);
+  background: var(--info-soft);
+  color: var(--info);
 }
+
 .badge-active {
-  background: var(--status-active-bg);
-  color: var(--status-active-fg);
+  background: var(--success-soft);
+  color: var(--success);
 }
+
 .badge-returned {
-  background: var(--status-returned-bg);
-  color: var(--status-returned-fg);
+  background: var(--surface-tint);
+  border-color: var(--line);
+  color: var(--text-muted);
 }
+
 .badge-cancelled {
-  background: var(--status-cancelled-bg);
-  color: var(--status-cancelled-fg);
+  background: var(--error-soft);
+  color: var(--error);
 }
 
-/* ==========================================================================
-   Nav
-   ========================================================================== */
+/* --- Chips (filter buttons) ------------------------------------------------ */
 
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: var(--surface);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  backdrop-filter: blur(20px) saturate(1.8);
-  border-bottom: 1px solid var(--border);
-}
-
-.nav-inner {
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: 0 20px;
-  height: var(--nav-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.nav-logo {
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* --- Signed-in user: role pill, Google photo, Log out ------------------- */
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.avatar-link {
-  display: inline-flex;
-  border-radius: 50%;
-  transition: box-shadow var(--transition), transform var(--transition);
-}
-
-.avatar-link:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 3px var(--border-strong);
-}
-
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-accent);
-  object-fit: cover;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.nav-link {
-  padding: 8px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.92rem;
-  color: var(--text-muted);
-  transition: background var(--transition), color var(--transition);
-}
-
-/* "Log out" is a button styled like the links around it. */
-button.nav-link {
-  background: none;
-  border: 0;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.nav-link:hover {
-  background: var(--bg-accent);
-  color: var(--text);
-}
-
-.nav-link.active {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.nav-toggle {
-  display: none;
-  padding: 8px 12px;
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color var(--transition);
-}
-
-.nav-toggle:hover {
-  border-color: var(--text-faint);
-}
-
-.nav-menu {
-  display: none;
-}
-
-@media (max-width: 760px) {
-  .nav-links {
-    display: none;
-  }
-
-  .nav-toggle {
-    display: block;
-  }
-
-  /* Mobile drop-down panel, shown when the menu button is pressed */
-  .nav-menu.open {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 12px 20px 20px;
-    border-top: 1px solid var(--border);
-  }
-
-  .nav-menu .nav-link {
-    padding: 12px 14px;
-  }
-
-  /* Log out lives in the drop-down on phones (see Nav.jsx). */
-  .user-menu-logout {
-    display: none;
-  }
-}
-
-/* ==========================================================================
-   Footer
-   ========================================================================== */
-
-.footer {
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.footer-inner {
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: 32px 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 32px;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.footer-links a:hover {
-  color: var(--text);
-}
-
-/* ==========================================================================
-   Home
-   ========================================================================== */
-
-.hero {
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: clamp(56px, 9vw, 104px) 20px 0;
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: clamp(2.25rem, 7vw, 4rem);
-  letter-spacing: -0.04em;
-}
-
-.hero-tagline {
-  max-width: 34rem;
-  margin: 18px auto 0;
-  font-size: clamp(1rem, 2.2vw, 1.15rem);
-  color: var(--text-muted);
-}
-
-/* --- Search bar ----------------------------------------------------------- */
-
-.search-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr) auto;
-  gap: 16px;
-  align-items: end;
-  max-width: 900px;
-  margin: 40px auto 0;
-  padding: 20px;
-  border-radius: var(--radius-lg);
-  text-align: left;
-}
-
-@media (max-width: 760px) {
-  .search-bar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-}
-
-/* --- Category tiles ------------------------------------------------------- */
-
-.category-row {
-  display: grid;
-  /* auto-fit rather than a fixed count, so adding or removing a category
-     doesn't leave an orphan tile on its own row. */
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-}
-
-@media (max-width: 900px) {
-  .category-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.category-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 22px 20px;
-  border-radius: var(--radius);
-  transition: transform var(--transition), box-shadow var(--transition),
-    border-color var(--transition);
-}
-
-.category-tile:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-strong);
-}
-
-.category-tile:active {
-  transform: translateY(-1px);
-}
-
-.category-tile strong {
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.category-tile span {
-  font-size: 0.85rem;
-  color: var(--text-faint);
-}
-
-/* --- How it works --------------------------------------------------------- */
-
-.steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-@media (max-width: 760px) {
-  .steps {
-    grid-template-columns: 1fr;
-  }
-}
-
-.step {
-  padding: 24px;
-  border-radius: var(--radius);
-}
-
-.step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin-bottom: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.step h3 {
-  font-size: 1.05rem;
-  margin-bottom: 6px;
-}
-
-.step p {
-  font-size: 0.92rem;
-  color: var(--text-muted);
-}
-
-/* ==========================================================================
-   Car grid & cards
-   ========================================================================== */
-
-.filter-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  padding: 18px;
-  margin-bottom: 28px;
-  border-radius: var(--radius);
-}
-
-@media (max-width: 860px) {
-  .filter-bar {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .filter-bar {
-    grid-template-columns: 1fr;
-  }
-}
-
-.car-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 980px) {
-  .car-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 620px) {
-  .car-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.car-card {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--radius);
-  transition: transform var(--transition), box-shadow var(--transition),
-    border-color var(--transition);
-}
-
-.car-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-strong);
-}
-
-.car-card-image {
-  aspect-ratio: 3 / 2;
-  width: 100%;
-  object-fit: cover;
-  background: var(--bg-accent);
-  border-bottom: 1px solid var(--border);
-}
-
-.car-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  padding: 18px;
-}
-
-.car-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.car-card-head h3 {
-  font-size: 1.05rem;
-}
-
-.car-specs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.car-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 6px;
-}
-
-.price {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.price strong {
-  font-size: 1.3rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.price span {
-  font-size: 0.85rem;
-  color: var(--text-faint);
-}
-
-.empty-state {
-  padding: 60px 20px;
-  border-radius: var(--radius);
-  text-align: center;
-  color: var(--text-muted);
-}
-
-/* Inline validation / API error text. Reuses the cancelled-status red so it
-   follows light and dark mode without new tokens. */
-.form-error {
-  margin-bottom: 16px;
-  font-size: 0.88rem;
-  color: var(--status-cancelled-fg);
-}
-
-.results-count {
-  margin-bottom: 16px;
-  font-size: 0.9rem;
-  color: var(--text-faint);
-}
-
-/* ==========================================================================
-   Car details
-   ========================================================================== */
-
-.detail-layout {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 28px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .detail-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.detail-image {
-  width: 100%;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  background: var(--bg-accent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-}
-
-.spec-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
-  margin-top: 28px;
-  overflow: hidden;
-  border-radius: var(--radius);
-  background: var(--border);
-}
-
-@media (max-width: 520px) {
-  .spec-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-.spec {
-  padding: 16px 18px;
-  background: var(--surface-solid);
-}
-
-.spec dt {
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
-}
-
-.spec dd {
-  margin: 4px 0 0;
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-/* --- Booking summary box -------------------------------------------------- */
-
-.booking-box {
-  position: sticky;
-  top: calc(var(--nav-height) + 20px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 22px;
-  border-radius: var(--radius-lg);
-}
-
-.booking-box-rate {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.summary-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 0.92rem;
-  color: var(--text-muted);
-}
-
-.summary-total {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-  font-weight: 600;
-}
-
-.summary-total strong {
-  font-size: 1.3rem;
-  letter-spacing: -0.02em;
-}
-
-/* ==========================================================================
-   Bookings
-   ========================================================================== */
-
-.booking-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.booking-card {
-  display: grid;
-  grid-template-columns: 120px 1fr auto;
-  gap: 20px;
-  align-items: center;
-  padding: 16px;
-  border-radius: var(--radius);
-  transition: box-shadow var(--transition), border-color var(--transition);
-}
-
-.booking-card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-strong);
-}
-
-.booking-card-image {
-  width: 120px;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  background: var(--bg-accent);
-  border-radius: var(--radius-sm);
-}
-
-.booking-card-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.booking-card-info h3 {
-  font-size: 1.05rem;
-}
-
-.booking-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-.booking-card-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-@media (max-width: 700px) {
-  .booking-card {
-    grid-template-columns: 1fr;
-  }
-
-  .booking-card-image {
-    width: 100%;
-  }
-
-  .booking-card-actions {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-}
-
-/* ==========================================================================
-   Login
-   ========================================================================== */
-
-.auth-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - var(--nav-height) - 160px);
-  padding: 48px 20px;
-}
-
-.auth-card {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 100%;
-  max-width: 400px;
-  padding: 32px;
-  border-radius: var(--radius-lg);
-}
-
-.auth-card h1 {
-  font-size: 1.6rem;
-}
-
-.auth-footnote {
-  text-align: center;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-/* ==========================================================================
-   Admin
-   ========================================================================== */
-
-/* Fleet / Bookings / Users switcher */
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-}
-
-.tab {
-  padding: 10px 16px;
-  margin-bottom: -1px;
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  font-family: inherit;
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color var(--transition), border-color var(--transition);
-}
-
-.tab:hover {
-  color: var(--text);
-}
-
-.tab[aria-selected='true'] {
-  color: var(--text);
-  font-weight: 500;
-  border-bottom-color: var(--text);
-}
-
-/* Booking status filters */
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  gap: var(--space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  background: var(--surface-tint);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-pill);
-  font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition), color var(--transition);
+  transition: background-color var(--transition), border-color var(--transition),
+    color var(--transition);
 }
 
 .chip:hover {
-  border-color: var(--text-faint);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .chip[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent-text);
+  color: var(--on-accent);
 }
 
+/* A tinted pill rather than lowered opacity, which would fail contrast. */
 .chip-count {
-  font-size: 0.78rem;
-  opacity: 0.7;
-}
-
-/* Add / Edit car form */
-.admin-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 24px;
-  margin-bottom: 20px;
-  border-radius: var(--radius);
-}
-
-.admin-form-title {
-  font-size: 1.15rem;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.form-grid-wide {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 760px) {
-  .form-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.panel-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 20px;
-}
-
-/* Users search */
-.search-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 18px;
-  margin-bottom: 20px;
-  border-radius: var(--radius);
-}
-
-.search-row .field {
-  flex: 1;
-}
-
-/* Buttons at the end of a table row */
-.row-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.confirm-inline {
-  display: inline-flex;
-  gap: 6px;
-}
-
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-@media (max-width: 620px) {
-  .stat-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.stat {
-  padding: 20px;
-  border-radius: var(--radius);
-}
-
-.stat dt {
-  font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
-}
-
-.stat dd {
-  margin: 6px 0 0;
-  font-size: 1.7rem;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: -0.02em;
 }
 
-.table-wrap {
-  overflow-x: auto;
-  border-radius: var(--radius);
-}
+/* --- Toggle switch --------------------------------------------------------- */
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-}
-
-th {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  font-size: 0.76rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
-  white-space: nowrap;
-}
-
-td {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
-}
-
-tbody tr {
-  transition: background var(--transition);
-}
-
-tbody tr:hover {
-  background: var(--bg-accent);
-}
-
-/* Active/inactive toggle switch */
 .toggle {
   position: relative;
-  width: 40px;
-  height: 23px;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.625rem;
   padding: 0;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius-pill);
-  background: var(--bg-accent);
+  background: var(--field-bg);
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition: background-color var(--transition), border-color var(--transition);
+}
+
+/* Invisible hit area so the switch is a 44px target without looking bigger. */
+.toggle::before {
+  content: '';
+  position: absolute;
+  inset: -0.5625rem 0;
 }
 
 .toggle::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 17px;
-  height: 17px;
+  top: 50%;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
   border-radius: 50%;
-  background: var(--surface-solid);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition);
+  background: var(--text-muted);
+  transform: translateY(-50%);
+  transition: transform var(--transition), background-color var(--transition);
 }
 
 .toggle[aria-checked='true'] {
@@ -1268,106 +655,1285 @@ tbody tr:hover {
 }
 
 .toggle[aria-checked='true']::after {
-  transform: translateX(17px);
-  background: var(--accent-text);
+  background: var(--on-accent);
+  transform: translate(1.125rem, -50%);
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* --- Tabs (segmented control) --------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: var(--space-8);
+  padding: var(--space-1);
+  overflow-x: auto;
+  border-radius: var(--radius-pill);
+}
+
+.tab {
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.tab:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Touch screens: compact controls grow to the 44px minimum target. */
+@media (pointer: coarse) {
+  .btn-sm,
+  .chip,
+  .tab {
+    min-height: var(--touch);
+  }
+}
+
+/* --- Tables ---------------------------------------------------------------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+th {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+td {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr {
+  transition: background-color var(--transition);
+}
+
+tbody tr:hover {
+  background: var(--row-hover);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.confirm-inline {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+/* Phones: each row becomes a stacked card, labelled from the cell's
+   data-label. A max-width query on purpose: undoing table layout from a
+   mobile-first base would need every display value restored by hand. */
+@media (max-width: 767.98px) {
+  .table-stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table-stack,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
+    display: block;
+  }
+
+  .table-stack tr {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .table-stack tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table-stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-2) 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .table-stack td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .table-stack .row-actions {
+    width: 100%;
+  }
+}
+
+/* --- Skeleton loaders ------------------------------------------------------ */
+
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton-line {
+  height: 0.875rem;
+}
+
+.skeleton-line:nth-child(2) {
+  width: 85%;
+}
+
+.skeleton-line:nth-child(3) {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* --- Empty, loading and error states -------------------------------------- */
+
+.load-state {
+  padding: var(--space-8) var(--space-6);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state h1 {
+  font-size: var(--text-xl);
+  color: var(--text);
+}
+
+.form-error {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--error-soft);
+  font-size: var(--text-sm);
+  color: var(--error);
+}
+
+.results-count {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+/* --- Price ----------------------------------------------------------------- */
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.price strong {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.price span {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
 }
 
 /* ==========================================================================
-   Reviews
+   6. Components
    ========================================================================== */
 
-.reviews-note {
-  margin-top: 4px;
-  font-size: 0.85rem;
+/* --- Nav ---------------------------------------------------------------------
+   A floating glass bar. Below 1024px the links move into a slide-in drawer. */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: var(--space-3) var(--gutter) 0;
 }
 
-/* Filled stars use the text color to stay inside the black/white palette. */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  max-width: var(--page-max);
+  height: var(--nav-height);
+  margin: 0 auto;
+  padding: 0 var(--space-2) 0 var(--space-5);
+  border-radius: var(--radius-pill);
+}
+
+.nav-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* Logo mark: a small sapphire-to-ice gem. */
+.nav-logo::before {
+  content: '';
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.nav-links {
+  display: none;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.nav-link:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.nav-drawer {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: min(20rem, calc(100% - 2 * var(--space-3)));
+  padding: var(--space-4);
+  overflow-y: auto;
+  border-radius: var(--radius-xl);
+  transform: translateX(calc(100% + var(--space-3)));
+  visibility: hidden;
+  transition: transform var(--duration-slow) var(--ease),
+    visibility 0s linear var(--duration-slow);
+}
+
+.nav-drawer[data-open='true'] {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--duration-slow) var(--ease);
+}
+
+.nav-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.nav-drawer-head .badge {
+  margin-right: auto;
+}
+
+.nav-drawer .nav-link {
+  min-height: 3rem;
+  font-size: var(--text-base);
+}
+
+/* --- Signed-in user: role pill, Google photo, Log out ---------------------- */
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Phones have no room for these in the bar; the drawer repeats both. */
+.user-menu .badge,
+.user-menu-logout {
+  display: none;
+}
+
+.avatar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  border-radius: 50%;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  object-fit: cover;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent);
+  transition: box-shadow var(--transition);
+}
+
+.avatar-link:hover .avatar {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.avatar-lg {
+  width: 2.875rem;
+  height: 2.875rem;
+  font-size: var(--text-lg);
+}
+
+@media (min-width: 640px) {
+  .user-menu .badge {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .user-menu-logout {
+    display: inline-flex;
+  }
+
+  .nav-menu-button,
+  .nav-scrim,
+  .nav-drawer {
+    display: none;
+  }
+}
+
+/* --- Footer ---------------------------------------------------------------- */
+
+.footer {
+  padding: 0 var(--gutter) var(--space-6);
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-8);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  transition: color var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+/* --- Car grid & card ------------------------------------------------------- */
+
+.car-grid {
+  display: grid;
+  /* 1 column on phones, 2 on tablets, 3 on desktop, decided by the space
+     available, so the grid also fits beside the filter sidebar. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-5);
+}
+
+.car-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition),
+    border-color var(--transition);
+}
+
+.car-card-image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 0;
+  background: var(--accent-soft);
+  transition: transform var(--duration-slow) var(--ease);
+}
+
+/* Stands in for a missing or broken photo (CarImage). Shares the image's
+   class, so it keeps the same size, radius and tint. */
+.car-image-fallback {
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.car-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.car-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.car-card-head h3 {
+  font-size: var(--text-lg);
+}
+
+.spec-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spec-pills li {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-tint);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.car-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+/* Hover effects only where hovering exists, so a tap doesn't leave a card
+   stuck in its lifted state. */
+@media (hover: hover) {
+  .car-card:hover {
+    border-color: var(--glow);
+    box-shadow: var(--glass-sheen), 0 22px 44px -18px var(--glow);
+    transform: translateY(-4px);
+  }
+
+  .car-card:hover .car-card-image {
+    transform: scale(1.04);
+  }
+}
+
+/* --- Search bar (home hero) ------------------------------------------------ */
+
+.search-bar {
+  display: grid;
+  gap: var(--space-4);
+  align-items: end;
+  max-width: 56rem;
+  margin: var(--space-10) auto 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .search-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .search-bar {
+    grid-template-columns: repeat(3, 1fr) auto;
+  }
+}
+
+/* ==========================================================================
+   7. Pages
+   ========================================================================== */
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+/* --- Home ------------------------------------------------------------------ */
+
+.hero {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vw, 6.5rem) var(--gutter) 0;
+  text-align: center;
+}
+
+/* Ink fading into sapphire; both ends pass contrast on the page background. */
+.hero h1 {
+  max-width: 16ch;
+  margin: 0 auto;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.04em;
+  background: linear-gradient(120deg, var(--text) 35%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (forced-colors: active) {
+  .hero h1 {
+    background: none;
+    color: CanvasText;
+  }
+}
+
+.hero-tagline {
+  max-width: 34rem;
+  margin: var(--space-5) auto 0;
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+}
+
+.category-row {
+  display: grid;
+  /* auto-fit rather than a fixed count, so adding or removing a category
+     doesn't leave an orphan tile on its own row. */
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+}
+
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  transition: transform var(--transition), box-shadow var(--transition),
+    border-color var(--transition);
+}
+
+.category-tile strong {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.category-tile span {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+@media (hover: hover) {
+  .category-tile:hover {
+    border-color: var(--glow);
+    box-shadow: var(--glass-sheen), 0 18px 36px -16px var(--glow);
+    transform: translateY(-3px);
+  }
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.step {
+  padding: var(--space-6);
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: var(--space-3);
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  box-shadow: 0 6px 16px -6px var(--glow);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--on-accent);
+}
+
+.step h3 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.step p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* --- Cars: filters + results ------------------------------------------------
+   Below 1024px the filters are a bottom sheet behind a "Filters" button.
+   From 1024px they become a sticky sidebar and the button goes away. */
+
+.cars-layout {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.filter-panel {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-height: 85dvh;
+  padding: var(--space-5) var(--gutter) calc(var(--space-6) + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  border-bottom: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  backdrop-filter: var(--blur-strong);
+  box-shadow: var(--glass-sheen), var(--shadow-strong);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform var(--duration-slow) var(--ease),
+    visibility 0s linear var(--duration-slow);
+}
+
+.filter-panel[data-open='true'] {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--duration-slow) var(--ease);
+}
+
+.filter-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-panel-head h2 {
+  font-size: var(--text-lg);
+}
+
+.filter-fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  margin-bottom: var(--space-4);
+}
+
+.results-bar .results-count {
+  margin: 0;
+}
+
+.filter-open {
+  margin-left: auto;
+}
+
+@media (min-width: 640px) {
+  .filter-fields {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cars-layout {
+    grid-template-columns: 16rem minmax(0, 1fr);
+  }
+
+  .filter-panel {
+    position: sticky;
+    top: var(--sticky-top);
+    z-index: auto;
+    max-height: none;
+    padding: var(--space-5);
+    overflow: visible;
+    border-bottom: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    background: var(--glass-medium);
+    -webkit-backdrop-filter: var(--blur-medium);
+    backdrop-filter: var(--blur-medium);
+    box-shadow: var(--glass-sheen), var(--shadow-medium);
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .filter-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel-head .icon-btn,
+  .filter-done,
+  .filter-scrim,
+  .filter-open {
+    display: none;
+  }
+}
+
+/* --- Car details ----------------------------------------------------------- */
+
+.detail-layout {
+  display: grid;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.detail-image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-medium);
+}
+
+.detail-header {
+  margin-top: var(--space-6);
+}
+
+.detail-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spec-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+}
+
+.spec {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-tint);
+}
+
+.spec dt {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.spec dd {
+  margin: var(--space-1) 0 0;
+  font-weight: 500;
+}
+
+.booking-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+}
+
+.booking-box-rate {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.booking-dates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+}
+
+.price-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-tint);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.summary-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.summary-total strong {
+  font-size: var(--text-xl);
+  letter-spacing: -0.02em;
+}
+
+.booking-box .form-error,
+.booking-note {
+  margin: 0;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .spec-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .detail-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(20rem, 1fr);
+  }
+
+  .booking-box {
+    position: sticky;
+    top: var(--sticky-top);
+  }
+}
+
+/* --- My bookings ----------------------------------------------------------- */
+
+.booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.booking-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+
+.booking-card-image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+}
+
+.booking-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.booking-card-info h3 {
+  font-size: var(--text-lg);
+}
+
+.booking-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.booking-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .booking-card {
+    grid-template-columns: 8rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-5);
+  }
+
+  .booking-card-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+@media (hover: hover) {
+  .booking-card:hover {
+    border-color: var(--glow);
+    box-shadow: var(--glass-sheen), var(--shadow-medium);
+  }
+}
+
+/* --- Login ----------------------------------------------------------------- */
+
+.auth-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 16rem);
+  padding: var(--space-12) var(--gutter);
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 25rem;
+  padding: clamp(var(--space-6), 5vw, var(--space-8));
+  border-radius: var(--radius-xl);
+}
+
+.auth-card h1 {
+  font-size: var(--text-2xl);
+}
+
+.auth-intro {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+
+.auth-card .form-error {
+  margin: 0;
+}
+
+.auth-footnote {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* --- Admin ----------------------------------------------------------------- */
+
+.stat-row {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-8);
+}
+
+.stat {
+  padding: var(--space-5);
+}
+
+.stat dt {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat dd {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-5);
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  padding: clamp(var(--space-5), 4vw, var(--space-6));
+}
+
+.admin-form-title {
+  font-size: var(--text-xl);
+}
+
+.admin-form .form-error {
+  margin: 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form-grid-wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.search-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+}
+
+@media (min-width: 640px) {
+  .stat-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .search-row {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .search-row .field {
+    flex: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* --- Reviews --------------------------------------------------------------- */
+
+.reviews-note {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+
 .stars {
   display: inline-flex;
   gap: 2px;
-  font-size: 1rem;
+  font-size: var(--text-base);
   line-height: 1;
 }
 
 .star {
-  color: var(--border-strong);
+  color: var(--line-strong);
 }
 
 .star-on {
-  color: var(--text);
-}
-
-.avatar-lg {
-  width: 46px;
-  height: 46px;
-  font-size: 1.1rem;
+  color: var(--accent);
 }
 
 .review-summary {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 32px;
+  gap: var(--space-5);
   align-items: center;
-  padding: 24px 28px;
-  margin-bottom: 24px;
-  border-radius: var(--radius);
+  margin-bottom: var(--space-6);
+  padding: var(--space-6);
 }
 
 .review-summary-score {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 120px;
+  gap: var(--space-2);
+  min-width: 7.5rem;
 }
 
 .review-summary-score strong {
-  font-size: 2.6rem;
-  font-weight: 600;
+  font-size: clamp(2.25rem, 1.8rem + 2vw, 2.75rem);
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .review-summary-score .faint {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .review-bars {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
 }
 
 .review-bar {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 3.25rem 1fr;
   align-items: center;
-  gap: 12px;
-  font-size: 0.85rem;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
 .review-bar dd {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
 }
 
 .review-bar-track {
   flex: 1;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: var(--bg-accent);
+  height: 0.5rem;
   overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
 }
 
 .review-bar-fill {
   display: block;
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--text);
+  background: var(--accent-gradient);
 }
 
 .review-bar-count {
@@ -1378,101 +1944,63 @@ tbody tr:hover {
 .review-toolbar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .review-toolbar .field {
-  width: 200px;
+  width: 100%;
 }
 
 .review-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-5);
 }
 
 .review-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 22px;
-  border-radius: var(--radius);
+  gap: var(--space-3);
+  padding: var(--space-6);
 }
 
 .review-card-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .review-card-head h3 {
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .review-card-head time {
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
 }
 
 .review-title {
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
 .review-body {
-  color: var(--text-muted);
   line-height: 1.6;
+  color: var(--text-muted);
 }
 
 .review-car {
   margin-top: auto;
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
 }
 
-@media (max-width: 620px) {
+@media (min-width: 640px) {
   .review-summary {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-8);
+    padding: var(--space-6) var(--space-8);
   }
 
   .review-toolbar .field {
-    width: 100%;
-  }
-
-  .review-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* --- Misc ----------------------------------------------------------------- */
-
-.back-link {
-  display: inline-block;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  transition: color var(--transition);
-}
-
-.back-link:hover {
-  color: var(--text);
-}
-
-.app-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.app-main {
-  flex: 1;
-}
-
-/* Respect users who ask for less motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    width: 13rem;
   }
 }

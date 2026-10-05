@@ -40,3 +40,17 @@ export function formatDate(value) {
 export function formatMoney(amount) {
   return `$${Math.round(Number(amount)).toLocaleString('en-US')}`
 }
+
+export function formatMileage(miles) {
+  return `${Number(miles).toLocaleString('en-US')} mi`
+}
+
+export function formatSeats(seats) {
+  return `${seats} ${seats === 1 ? 'seat' : 'seats'}`
+}
+
+// transmission is stored lowercase ('automatic' | 'manual'). Capitalized here
+// rather than with CSS text-transform, which would also turn "mi" into "Mi".
+export function formatTransmission(transmission) {
+  return transmission.charAt(0).toUpperCase() + transmission.slice(1)
+}

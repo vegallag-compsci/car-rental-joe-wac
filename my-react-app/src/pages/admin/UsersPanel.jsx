@@ -85,7 +85,7 @@ export default function UsersPanel() {
           </p>
 
           <div className="table-wrap glass">
-            <table>
+            <table className="table-stack">
               <thead>
                 <tr>
                   <th>Email</th>
@@ -97,11 +97,13 @@ export default function UsersPanel() {
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.email}</td>
-                    <td>
+                    <td data-label="Email">{user.email}</td>
+                    <td data-label="Role">
                       <RoleBadge role={user.role} />
                     </td>
-                    <td className="faint">{formatDate(user.created_at)}</td>
+                    <td data-label="Joined" className="faint">
+                      {formatDate(user.created_at)}
+                    </td>
                     <td>
                       <div className="row-actions">
                         {user.id === me.id ? (

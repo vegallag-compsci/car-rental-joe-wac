@@ -2,11 +2,19 @@
 // Pages render it in place of their content:
 //
 //   if (loading || error) return <LoadState loading={loading} error={error} onRetry={reload} />
+//
+// While loading it shows shimmering skeleton lines; screen readers hear
+// `loadingText` instead.
 export default function LoadState({ loading, error, onRetry, loadingText = 'Loading…' }) {
   if (loading) {
     return (
-      <div className="empty-state glass" role="status">
-        {loadingText}
+      <div className="load-state glass" role="status">
+        <span className="visually-hidden">{loadingText}</span>
+        <div className="skeleton-text" aria-hidden="true">
+          <span className="skeleton skeleton-line" />
+          <span className="skeleton skeleton-line" />
+          <span className="skeleton skeleton-line" />
+        </div>
       </div>
     )
   }
@@ -15,7 +23,7 @@ export default function LoadState({ loading, error, onRetry, loadingText = 'Load
     <div className="empty-state glass" role="alert">
       <p>{error?.message || 'Something went wrong.'}</p>
       {onRetry && (
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onRetry} style={{ marginTop: 16 }}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={onRetry}>
           Try again
         </button>
       )}

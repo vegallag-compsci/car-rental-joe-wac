@@ -88,7 +88,7 @@ export default function FleetPanel() {
       )}
 
       <div className="table-wrap glass">
-        <table>
+        <table className="table-stack">
           <thead>
             <tr>
               <th>Car</th>
@@ -101,14 +101,16 @@ export default function FleetPanel() {
           <tbody>
             {cars.map((car) => (
               <tr key={car.id}>
-                <td>
-                  {car.make} {car.model} <span className="faint">{car.year}</span>
+                <td data-label="Car">
+                  <span>
+                    {car.make} {car.model} <span className="faint">{car.year}</span>
+                  </span>
                 </td>
-                <td>
+                <td data-label="Category">
                   <CategoryBadge categoryId={car.category_id} />
                 </td>
-                <td>{formatMoney(car.daily_rate)}</td>
-                <td>
+                <td data-label="Daily rate">{formatMoney(car.daily_rate)}</td>
+                <td data-label="Active">
                   <button
                     type="button"
                     role="switch"
@@ -123,7 +125,7 @@ export default function FleetPanel() {
                   <div className="row-actions">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-secondary btn-sm"
                       onClick={() => setEditing(car)}
                     >
                       Edit
