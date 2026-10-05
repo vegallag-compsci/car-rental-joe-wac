@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import CategoryBadge from './CategoryBadge'
-import { formatMoney } from '../data/mockCars'
+import { formatMoney } from '../utils/format'
 
-export default function CarCard({ car }) {
+// `search` is an optional query string (e.g. "?pickup=...&return=...") so the
+// details page can pre-fill the dates the user already searched for.
+export default function CarCard({ car, search = '' }) {
   return (
     <article className="car-card glass">
       <img
@@ -31,7 +33,7 @@ export default function CarCard({ car }) {
             <strong>{formatMoney(car.daily_rate)}</strong>
             <span>/ day</span>
           </div>
-          <Link to={`/cars/${car.id}`} className="btn btn-sm">
+          <Link to={`/cars/${car.id}${search}`} className="btn btn-sm">
             View
           </Link>
         </div>

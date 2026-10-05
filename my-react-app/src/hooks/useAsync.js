@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 /**
  * Run an async function and track loading / data / error for it.
  *
- *   const { loading, data, error, reload } = useAsync(
+ *   const { loading, data, error, reload, setData } = useAsync(
  *     (signal) => getCars({ categoryId, signal }),
  *     [categoryId]
  *   )
@@ -22,6 +22,17 @@ export function useAsync(asyncFn, deps = []) {
   const [reloadCount, setReloadCount] = useState(0)
 
   const reload = useCallback(() => setReloadCount((n) => n + 1), [])
+
+  // Patch the loaded data locally, e.g. after a mutation the server already
+  // confirmed, without refetching. Accepts a value or an updater function.
+  const setData = useCallback(
+    (update) =>
+      setState((current) => ({
+        ...current,
+        data: typeof update === 'function' ? update(current.data) : update,
+      })),
+    []
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -46,5 +57,5 @@ export function useAsync(asyncFn, deps = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, reloadCount])
 
-  return { ...state, reload }
+  return { ...state, reload, setData }
 }

@@ -84,6 +84,10 @@ Other commands, all run from `my-react-app/`:
 | GET | `/api/categories` | — | All categories |
 | GET | `/api/cars` | — | `?category=3&sort=price-asc&pickup=&return=` |
 | GET | `/api/cars/:id` | — | One car |
+| GET | `/api/auth/google` | — | Browser link that starts Google sign-in |
+| POST | `/api/auth/refresh` | — | `{ refresh_token }` → new session |
+| GET | `/api/auth/me` | ✅ | Current user and role |
+| POST | `/api/auth/logout` | ✅ | End the session |
 | GET | `/api/bookings` | ✅ | The caller's own bookings |
 | POST | `/api/bookings` | ✅ | `{ car_id, pickup_at, return_at }` |
 | POST | `/api/bookings/:id/cancel` | ✅ | Sets status to `cancelled` |
@@ -130,13 +134,9 @@ supabase/
 
 ## What's left to do
 
-1. **Connect the React pages to the API.** Nothing in `src/pages` imports
-   `src/api` yet, so the UI still runs entirely on `mockCars.js`. The calls
-   and the `useAsync` hook are written and tested — the pages need loading and
-   error states adding. Do `/cars` first as the reference pattern.
-2. **Authentication.** The login page is visual only. Once Supabase auth is
-   wired up, call `setAccessToken()` from `src/api/client.js` after login so
-   requests carry the JWT.
+1. ~~Connect the React pages to the API.~~ Done.
+2. ~~Authentication.~~ Google sign-in through Flask is done. See "Google
+   login" in [api/README.md](api/README.md) for the one-time dashboard setup.
 3. **Admin routes.** The admin page's toggle and Edit buttons are UI only.
    The API has no admin endpoints yet; `get_admin_client()` is ready for them.
 4. **Deployment.** `BrowserRouter` needs a host-side catch-all rewrite to

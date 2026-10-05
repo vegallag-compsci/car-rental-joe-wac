@@ -1,16 +1,38 @@
 import { useSearchParams } from 'react-router-dom'
+import { getCars } from '../api/cars'
 import CarCard from '../components/CarCard'
-import { carCategories, cars } from '../data/mockCars'
+import LoadState from '../components/LoadState'
+import { useAsync } from '../hooks/useAsync'
+import { useCategories } from '../hooks/useCategories'
+import { daysBetween, formatDate } from '../utils/format'
 
 export default function Cars() {
   // Filters live in the URL so links like /cars?category=3 just work, and so a
-  // filtered view can be shared or bookmarked.
+  // filtered view can be shared or bookmarked. The params map 1:1 onto the API.
   const [searchParams, setSearchParams] = useSearchParams()
+  const { categories } = useCategories()
 
   const pickup = searchParams.get('pickup') ?? ''
   const dropoff = searchParams.get('return') ?? ''
   const categoryId = searchParams.get('category') ?? 'all'
   const sort = searchParams.get('sort') ?? 'default'
+
+  // The API only filters by availability when it gets a valid date range, and
+  // rejects a backwards one, so only send dates once both make sense.
+  const hasDates = daysBetween(pickup, dropoff) > 0
+  const datesInvalid = Boolean(pickup && dropoff && !hasDates)
+
+  const { loading, data: cars, error, reload } = useAsync(
+    (signal) =>
+      getCars({
+        categoryId,
+        sort: sort === 'default' ? undefined : sort,
+        pickup: hasDates ? pickup : undefined,
+        dropoff: hasDates ? dropoff : undefined,
+        signal,
+      }),
+    [categoryId, sort, hasDates, pickup, dropoff]
+  )
 
   function updateParam(key, value) {
     const next = new URLSearchParams(searchParams)
@@ -22,26 +44,18 @@ export default function Cars() {
     setSearchParams(next)
   }
 
-  // Only show cars the admin has marked active.
-  let visibleCars = cars.filter((car) => car.is_active)
-
-  if (categoryId !== 'all') {
-    visibleCars = visibleCars.filter(
-      (car) => car.category_id === Number(categoryId)
-    )
-  }
-
-  if (sort === 'price-asc') {
-    visibleCars = [...visibleCars].sort((a, b) => a.daily_rate - b.daily_rate)
-  } else if (sort === 'price-desc') {
-    visibleCars = [...visibleCars].sort((a, b) => b.daily_rate - a.daily_rate)
-  }
+  // Carry the searched dates through to the details page.
+  const detailSearch = hasDates ? `?pickup=${pickup}&return=${dropoff}` : ''
 
   return (
     <div className="page">
       <div className="page-header">
         <h1>Find a car</h1>
-        <p>Every car below is available to book today.</p>
+        <p>
+          {hasDates
+            ? `Showing cars free from ${formatDate(pickup)} to ${formatDate(dropoff)}.`
+            : 'Add your dates to see only the cars free for your trip.'}
+        </p>
       </div>
 
       <div className="filter-bar glass">
@@ -79,7 +93,7 @@ export default function Cars() {
             }
           >
             <option value="all">All categories</option>
-            {carCategories.map((category) => (
+            {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
@@ -102,24 +116,38 @@ export default function Cars() {
             <option value="default">Recommended</option>
             <option value="price-asc">Price: low to high</option>
             <option value="price-desc">Price: high to low</option>
+            <option value="newest">Newest</option>
           </select>
         </div>
       </div>
 
-      <p className="results-count">
-        {visibleCars.length} {visibleCars.length === 1 ? 'car' : 'cars'} available
-      </p>
+      {datesInvalid && (
+        <p className="form-error">
+          Return date must be after the pickup date. Showing all cars instead.
+        </p>
+      )}
 
-      {visibleCars.length > 0 ? (
-        <div className="car-grid">
-          {visibleCars.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
-        </div>
+      {loading || error ? (
+        <LoadState loading={loading} error={error} onRetry={reload} loadingText="Loading cars…" />
       ) : (
-        <div className="empty-state glass">
-          No cars match those filters. Try a different category.
-        </div>
+        <>
+          <p className="results-count">
+            {cars.length} {cars.length === 1 ? 'car' : 'cars'} available
+          </p>
+
+          {cars.length > 0 ? (
+            <div className="car-grid">
+              {cars.map((car) => (
+                <CarCard key={car.id} car={car} search={detailSearch} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state glass">
+              No cars match those filters. Try different dates or another
+              category.
+            </div>
+          )}
+        </>
       )}
     </div>
   )

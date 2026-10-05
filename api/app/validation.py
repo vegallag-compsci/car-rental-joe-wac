@@ -51,7 +51,7 @@ def required_int(raw, field: str) -> int:
 def days_between(pickup: str, dropoff: str) -> int:
     """Whole nights between two YYYY-MM-DD strings.
 
-    Mirrors daysBetween() in the frontend's mockCars.js so the price the user
+    Mirrors daysBetween() in the frontend's src/utils/format.js so the price the user
     was shown matches the price we charge.
     """
     start = date.fromisoformat(pickup)

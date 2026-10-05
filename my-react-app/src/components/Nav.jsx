@@ -1,15 +1,61 @@
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-
-// Links are listed once and rendered twice: desktop row + mobile drop-down.
-const links = [
-  { to: '/cars', label: 'Find a car' },
-  { to: '/bookings', label: 'My bookings' },
-  { to: '/login', label: 'Log in' },
-]
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { status, user, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  // The Admin link is a convenience only; RLS is what limits admin actions.
+  const links = [
+    { to: '/cars', label: 'Find a car' },
+    { to: '/bookings', label: 'My bookings' },
+    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin' }] : []),
+  ]
+
+  async function handleSignOut() {
+    setMenuOpen(false)
+    await signOut()
+    navigate('/')
+  }
+
+  // Rendered twice: desktop row + mobile drop-down. Nothing auth-related
+  // shows while a saved login is still being checked, to avoid a flicker
+  // from "Log in" to "Log out".
+  function renderLinks() {
+    return (
+      <>
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className="nav-link"
+            onClick={() => setMenuOpen(false)}
+          >
+            {link.label}
+          </NavLink>
+        ))}
+
+        {status === 'signedIn' && (
+          <button
+            type="button"
+            className="nav-link"
+            title={`Signed in as ${user.email}`}
+            onClick={handleSignOut}
+          >
+            Log out
+          </button>
+        )}
+
+        {status === 'signedOut' && (
+          <NavLink to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>
+            Log in
+          </NavLink>
+        )}
+      </>
+    )
+  }
 
   return (
     <header className="nav">
@@ -18,13 +64,7 @@ export default function Nav() {
           CarRental
         </Link>
 
-        <nav className="nav-links">
-          {links.map((link) => (
-            <NavLink key={link.to} to={link.to} className="nav-link">
-              {link.label}
-            </NavLink>
-          ))}
-        </nav>
+        <nav className="nav-links">{renderLinks()}</nav>
 
         <button
           type="button"
@@ -37,18 +77,7 @@ export default function Nav() {
         </button>
       </div>
 
-      <nav className={menuOpen ? 'nav-menu open' : 'nav-menu'}>
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
+      <nav className={menuOpen ? 'nav-menu open' : 'nav-menu'}>{renderLinks()}</nav>
     </header>
   )
 }

@@ -7,8 +7,10 @@ import Cars from './pages/Cars'
 import CarDetails from './pages/CarDetails'
 import Bookings from './pages/Bookings'
 import Login from './pages/Login'
+import AuthCallback from './pages/AuthCallback'
 import Admin from './pages/Admin'
 import NotFound from './pages/NotFound'
+import { AUTH_CALLBACK_PATH } from './auth/session'
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
           <Route path="/cars/:id" element={<CarDetails />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/login" element={<Login />} />
+          <Route path={AUTH_CALLBACK_PATH} element={<AuthCallback />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

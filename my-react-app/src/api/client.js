@@ -5,10 +5,10 @@
 // directly, so error handling and auth headers only exist in one place.
 // ---------------------------------------------------------------------------
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-// Set once after login so requests can carry the user's Supabase JWT.
-// Replace this with a read from your auth context when that exists.
+// The logged-in user's Supabase JWT, attached to every request. Kept in
+// memory only; src/auth/session.js sets it on login and on each refresh.
 let accessToken = null
 
 export function setAccessToken(token) {

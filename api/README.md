@@ -85,7 +85,12 @@ anon key — which ships in the React bundle.
 | GET | `/api/categories` | — | All categories |
 | GET | `/api/cars` | — | `?category=3&sort=price-asc&pickup=&return=` |
 | GET | `/api/cars/:id` | — | One car |
-| GET | `/api/bookings` | ✅ | The caller's own bookings |
+| GET | `/api/auth/google` | — | **Browser link, not fetch.** Starts Google sign-in. `?next=/path` |
+| GET | `/api/auth/callback` | — | Supabase redirects here; never called by the app |
+| POST | `/api/auth/refresh` | — | `{ refresh_token }` → new session |
+| GET | `/api/auth/me` | ✅ | `{ id, email, name, avatar_url, role }` |
+| POST | `/api/auth/logout` | ✅ | Revokes the session's refresh token |
+| GET | `/api/bookings` | ✅ | The caller's own bookings, each with an embedded `car` |
 | POST | `/api/bookings` | ✅ | `{ car_id, pickup_at, return_at }` |
 | POST | `/api/bookings/:id/cancel` | ✅ | Sets status to `cancelled` |
 
@@ -98,6 +103,38 @@ Authenticated endpoints need the user's Supabase JWT:
 ```
 Authorization: Bearer <token>
 ```
+
+## Google login
+
+Google is the only sign-in method. The whole flow runs through Flask
+(`app/routes/auth.py`), so the React app never talks to Supabase and needs no
+Supabase keys:
+
+```
+React  --link-->  /api/auth/google  --302-->  Supabase  -->  Google
+React  <--302 with #tokens--  /api/auth/callback  <--302 ?code=--  Supabase
+```
+
+It uses Supabase's PKCE flow: a one-time secret kept in an HttpOnly cookie
+means a stolen `?code=` is useless in another browser. The session reaches
+React in the URL **fragment** (`#access_token=...`), which browsers never send
+to servers, and React clears it from the address bar immediately.
+
+One-time setup (also listed in `.env.example`):
+
+1. Supabase → Authentication → URL Configuration → **Redirect URLs**: add
+   `http://localhost:5000/api/auth/callback` (that is `API_URL` +
+   `/api/auth/callback`). If it's missing, Supabase silently sends users to
+   the Site URL instead, and login appears to do nothing.
+2. Google Cloud Console → your OAuth client → **Authorized redirect URIs**
+   must include `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. Recommended: turn the **Email** provider off in Supabase so Google is
+   really the only way to create an account.
+
+Auth calls use `get_auth_client()`, which makes a fresh client each time.
+Never use the cached `get_client()` for them: a supabase-py client that
+completes a sign-in switches itself to that user's token, which would make
+every later anonymous request act as that user.
 
 ## Errors
 
@@ -141,6 +178,7 @@ api/
     errors.py             one JSON error shape
     routes/
       health.py
+      auth.py             Google login, refresh, me, logout
       cars.py
       bookings.py
 ```

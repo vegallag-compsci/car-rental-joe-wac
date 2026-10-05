@@ -34,6 +34,17 @@ class Config:
         if origin.strip()
     ]
 
+    # Google login round trip (routes/auth.py). API_URL is where the browser
+    # reaches this server; Supabase sends users back to
+    # {API_URL}/api/auth/callback, which must be in Supabase's Redirect URLs
+    # allow-list. FRONTEND_URL is where we send them after that.
+    API_URL = os.getenv("API_URL", f"http://localhost:{PORT}").strip().rstrip("/")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").strip().rstrip("/")
+
+    @property
+    def auth_callback_url(self) -> str:
+        return f"{self.API_URL}/api/auth/callback"
+
     @property
     def is_production(self) -> bool:
         return self.FLASK_ENV == "production"

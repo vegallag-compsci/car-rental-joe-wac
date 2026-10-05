@@ -1,4 +1,4 @@
-// Car and category calls. These replace the array imports from mockCars.js.
+// Car and category calls. Public endpoints, no login needed.
 import { query, request } from './client'
 
 /**

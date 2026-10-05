@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { getCars } from '../api/cars'
 import SearchBar from '../components/SearchBar'
-import { carCategories, cars } from '../data/mockCars'
+import { useAsync } from '../hooks/useAsync'
+import { useCategories } from '../hooks/useCategories'
+import { formatMoney } from '../utils/format'
 
 const steps = [
   { title: 'Choose dates', text: 'Tell us when you need the car and for how long.' },
@@ -8,15 +11,30 @@ const steps = [
   { title: 'Drive', text: 'Pick up the keys and go. No paperwork queue.' },
 ]
 
-// Cheapest daily rate in a category, shown on the tiles as a "from" price.
-function startingRate(categoryId) {
-  const rates = cars
-    .filter((car) => car.category_id === categoryId && car.is_active)
-    .map((car) => car.daily_rate)
-  return rates.length ? Math.min(...rates) : null
+// Cheapest daily rate in each category, shown on the tiles as a "from" price.
+// The API only returns active cars, so no is_active check is needed here.
+function startingRates(cars) {
+  const rates = new Map()
+  for (const car of cars) {
+    const current = rates.get(car.category_id)
+    if (current === undefined || car.daily_rate < current) {
+      rates.set(car.category_id, car.daily_rate)
+    }
+  }
+  return rates
 }
 
 export default function Home() {
+  const { categories } = useCategories()
+  const { data: cars } = useAsync((signal) => getCars({ signal }), [])
+  const rates = startingRates(cars ?? [])
+
+  function tileText(categoryId) {
+    if (!cars) return ' ' // keep the tile height steady while loading
+    const rate = rates.get(categoryId)
+    return rate === undefined ? 'Coming soon' : `from ${formatMoney(rate)} / day`
+  }
+
   return (
     <>
       <section className="hero">
@@ -32,19 +50,16 @@ export default function Home() {
         <section className="section">
           <h2 className="section-title">Browse by category</h2>
           <div className="category-row">
-            {carCategories.map((category) => {
-              const rate = startingRate(category.id)
-              return (
-                <Link
-                  key={category.id}
-                  to={`/cars?category=${category.id}`}
-                  className="category-tile glass"
-                >
-                  <strong>{category.name}</strong>
-                  <span>{rate ? `from $${rate} / day` : 'Coming soon'}</span>
-                </Link>
-              )
-            })}
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                to={`/cars?category=${category.id}`}
+                className="category-tile glass"
+              >
+                <strong>{category.name}</strong>
+                <span>{tileText(category.id)}</span>
+              </Link>
+            ))}
           </div>
         </section>
 

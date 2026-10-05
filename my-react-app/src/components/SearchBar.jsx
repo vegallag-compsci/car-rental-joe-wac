@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { carCategories } from '../data/mockCars'
+import { useCategories } from '../hooks/useCategories'
 
 // Home page search. Submitting sends the chosen values to /cars as query
 // params, which the Browse page reads to pre-fill its own filter bar.
 export default function SearchBar() {
   const navigate = useNavigate()
+  const { categories } = useCategories()
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
   const [categoryId, setCategoryId] = useState('all')
@@ -52,7 +53,7 @@ export default function SearchBar() {
           onChange={(e) => setCategoryId(e.target.value)}
         >
           <option value="all">All categories</option>
-          {carCategories.map((category) => (
+          {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
             </option>

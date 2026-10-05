@@ -25,20 +25,17 @@ real data lives in Supabase.
 | --- | --- |
 | Database (`supabase/`) | **Done.** 001–003 applied to the live Supabase project. 76/76 local tests pass. |
 | Flask API (`api/`) | **Done for public + customer routes.** `verify.py` passes against live Supabase. No admin routes yet. |
-| React UI (`my-react-app/`) | **Visual only.** Every page still renders from `src/data/mockCars.js`. `src/api/` and `src/hooks/useAsync.js` exist but **nothing imports them yet**. |
-| Auth | **Not started on the front end.** `@supabase/supabase-js` is not installed; Login page is UI only. |
+| React UI (`my-react-app/`) | **On the API.** Mock data is gone. Every page loads through `src/api/*` + `useAsync`. Reserve (CarDetails) and list/cancel (`/bookings`) call the real endpoints but show a "log in" prompt on 401 until auth exists. Admin is read-only (public fleet, inactive cars hidden). |
+| Auth | **Google only, run through Flask** (`api/app/routes/auth.py`, PKCE). React has no Supabase SDK or keys: `src/auth/` holds the session (access token in memory, refresh token in localStorage) and `useAuth()`. Needs the Supabase Redirect URL set (see `api/.env.example`). Not yet tested with a real Google login. |
 
 ### Roadmap, in order
 
-1. Point the public pages (Home, Cars, CarDetails, SearchBar categories) at the
-   API via `src/api/cars.js` + `useAsync`, with loading/error states. Do
-   `/cars` first as the reference pattern.
-2. Supabase Auth in React: install `@supabase/supabase-js`, set
-   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in `my-react-app/.env.local`,
-   call `setAccessToken()` from `src/api/client.js` on login and on token
-   refresh. Then run the manual steps in section 8 of `supabase/003_rls.sql`.
-3. Real bookings: create from CarDetails, list and cancel on `/bookings`
-   (endpoints already exist).
+1. ~~Public pages on the API~~ (done; `/cars` is the reference pattern).
+2. ~~Login~~ (done; Google via Flask). Still to do by hand: sign in once with
+   a real Google account, then run the manual steps in section 8 of
+   `supabase/003_rls.sql` (make yourself admin, claim the seed bookings).
+3. Real bookings: the UI is already wired (create from CarDetails, list and
+   cancel on `/bookings`). It needs a manual test as a logged-in user.
 4. Admin: add `api/app/routes/admin.py`. `queries.set_car_active` exists but
    nothing calls it. Prefer the admin user's own client (`g.db`), because the
    RLS admin policies already allow it. `get_admin_client()` (service_role)
@@ -53,11 +50,16 @@ real data lives in Supabase.
 my-react-app/                 React 19, Vite 8, react-router-dom 7, oxlint. No UI libs, no Tailwind.
   src/App.jsx                 routes: / /cars /cars/:id /bookings /login /admin *
   src/pages/                  one file per route
-  src/components/             CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer, ScrollToTop
-  src/data/mockCars.js        mock arrays + helpers (formatMoney, formatDate, daysBetween, getCarLabel, getCategoryName)
+  src/components/             CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer, ScrollToTop,
+                              LoadState (shared loading / error + retry placeholder)
+  src/utils/format.js         formatMoney, formatDate, daysBetween, dateInDays, getCarLabel
   src/api/client.js           fetch wrapper: base URL, Bearer token, ApiError(status, code)
   src/api/cars.js, bookings.js  one function per endpoint
-  src/hooks/useAsync.js       { loading, data, error, reload } with AbortController
+  src/hooks/useAsync.js       { loading, data, error, reload, setData } with AbortController
+  src/hooks/useCategories.js  categories fetched once and shared; { categories, getCategoryName }
+  src/api/auth.js             googleLoginUrl, refreshSession, getMe, logout
+  src/auth/                   session.js (token storage + refresh), AuthProvider.jsx, AuthContext.js (useAuth)
+  src/pages/AuthCallback.jsx  /auth/callback: reads the #tokens Flask sends back after Google
   src/index.css               ALL styling; design tokens in :root, dark mode via prefers-color-scheme
   vite.config.js              port 5173, strictPort (see gotchas)
 
@@ -71,7 +73,7 @@ api/                          Flask 3, flask-cors, supabase-py 2, python-dotenv.
   app/queries.py              EVERY database call lives here
   app/validation.py           input parsing -> 400s
   app/errors.py               single JSON error shape; maps Postgres codes to HTTP
-  app/routes/                 health.py, cars.py, bookings.py; register in routes/__init__.py BLUEPRINTS
+  app/routes/                 health.py, auth.py (Google login), cars.py, bookings.py; register in routes/__init__.py BLUEPRINTS
 
 supabase/
   001_schema_and_seed.sql     tables, seed rows, no-overlap exclusion constraint. DROPS TABLES - destructive.
@@ -94,9 +96,9 @@ supabase/
 - **profiles**: `id -> auth.users`, `email`, `role` (`customer` | `admin`).
   Created automatically by the `on_auth_user_created` trigger.
 
-Mock data in `mockCars.js` uses the **exact** column names above, so swapping
-to API data should not require component changes. When mock data is removed,
-keep the helpers: move them to e.g. `src/utils/format.js`.
+The API returns rows with these **exact** column names, and components read
+them directly. `GET /api/bookings` also embeds `car: {id, make, model, year,
+image_url}`. That field is null if RLS hides the car because it was deactivated.
 
 ## Invariants: do not break these
 
@@ -125,6 +127,10 @@ keep the helpers: move them to e.g. `src/utils/format.js`.
    `g.db` so `auth.uid()` resolves to the caller. `get_admin_client()` bypasses
    RLS; reaching for it to "make a query work" usually means a policy is
    missing.
+   Login, refresh, and logout use `get_auth_client()` (a fresh client each
+   time), **never** the cached `get_client()`. A supabase-py client that
+   completes a sign-in switches itself to that user's token, so using the
+   shared one would make all later anonymous requests act as that user.
 8. **Never put the service_role key in the front end.** Only `VITE_*` vars
    reach the browser, and they are inlined into the bundle.
 9. Do not commit `api/.env`, `my-react-app/.env.local`, or `.venv/` (all

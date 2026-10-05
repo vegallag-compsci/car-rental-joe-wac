@@ -18,6 +18,13 @@ CAR_FIELDS = (
 )
 BOOKING_FIELDS = "id, car_id, pickup_at, return_at, status, total_price, created_at"
 
+# Bookings plus the car they're for, embedded via the car_id foreign key, so
+# the "My bookings" page needs one request instead of one per booking. `car`
+# is null if RLS hides the car (it was deactivated after being booked).
+BOOKING_WITH_CAR_FIELDS = (
+    f"{BOOKING_FIELDS}, car:cars(id, make, model, year, image_url)"
+)
+
 SORT_OPTIONS = {
     "price-asc": ("daily_rate", False),
     "price-desc": ("daily_rate", True),
@@ -111,7 +118,7 @@ def list_bookings(db):
     """
     return (
         db.table("bookings")
-        .select(BOOKING_FIELDS)
+        .select(BOOKING_WITH_CAR_FIELDS)
         .order("pickup_at", desc=True)
         .execute()
         .data
@@ -190,6 +197,26 @@ def cancel_booking(db, booking_id):
     if not rows:
         raise ApiError("Could not cancel that booking.", 500)
     return rows[0]
+
+
+# --- profiles --------------------------------------------------------------
+
+def get_role(db, user_id):
+    """The user's role ('customer' or 'admin'). Expects that user's client.
+
+    profiles_read_own lets a user read only their own row. The row is created
+    by the on_auth_user_created trigger, so it should always exist; default to
+    'customer' rather than fail if it somehow doesn't.
+    """
+    rows = (
+        db.table("profiles")
+        .select("role")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    return rows[0]["role"] if rows else "customer"
 
 
 # --- admin -----------------------------------------------------------------

@@ -378,6 +378,15 @@ select {
   transition: background var(--transition), color var(--transition);
 }
 
+/* "Log out" is a button styled like the links around it. */
+button.nav-link {
+  background: none;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .nav-link:hover {
   background: var(--bg-accent);
   color: var(--text);
@@ -722,6 +731,14 @@ select {
   color: var(--text-muted);
 }
 
+/* Inline validation / API error text. Reuses the cancelled-status red so it
+   follows light and dark mode without new tokens. */
+.form-error {
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  color: var(--status-cancelled-fg);
+}
+
 .results-count {
   margin-bottom: 16px;
   font-size: 0.9rem;
@@ -933,24 +950,6 @@ select {
 
 .auth-card h1 {
   font-size: 1.6rem;
-}
-
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
 }
 
 .auth-footnote {

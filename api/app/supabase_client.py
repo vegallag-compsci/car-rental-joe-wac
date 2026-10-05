@@ -50,6 +50,19 @@ def get_user_client(access_token: str) -> Client:
     return client
 
 
+def get_auth_client() -> Client:
+    """Fresh, throwaway client for login / refresh / logout calls.
+
+    NEVER use get_client() for these. A supabase-py client that completes a
+    sign-in or refresh switches itself to that user's token, so doing it on
+    the cached anonymous client would make every later "anonymous" request
+    in this process act as whoever logged in last.
+    """
+    return create_client(
+        config.SUPABASE_URL, config.SUPABASE_ANON_KEY, options=_OPTIONS
+    )
+
+
 @lru_cache(maxsize=1)
 def get_admin_client() -> Client:
     """Service-role client. IGNORES ROW LEVEL SECURITY.

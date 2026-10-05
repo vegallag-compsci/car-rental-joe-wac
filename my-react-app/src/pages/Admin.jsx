@@ -1,44 +1,54 @@
-import { useState } from 'react'
+import { getCars } from '../api/cars'
 import CategoryBadge from '../components/CategoryBadge'
-import { cars as mockCars, formatMoney } from '../data/mockCars'
+import LoadState from '../components/LoadState'
+import { useAsync } from '../hooks/useAsync'
+import { formatMoney } from '../utils/format'
+
+// Read-only for now: there are no admin API routes yet (roadmap step 4), so
+// this lists the public fleet, which leaves out inactive cars. Once
+// api/app/routes/admin.py exists, swap getCars for an admin call that
+// includes inactive cars and wire the toggle to queries.set_car_active.
+const NOT_WIRED = 'Needs the admin API (not built yet)'
 
 export default function Admin() {
-  // Local copy so the active toggle visibly flips. UI only — nothing saves.
-  const [cars, setCars] = useState(mockCars)
+  const { loading, data: cars, error, reload } = useAsync(
+    (signal) => getCars({ signal }),
+    []
+  )
 
-  function toggleActive(carId) {
-    setCars((current) =>
-      current.map((car) =>
-        car.id === carId ? { ...car, is_active: !car.is_active } : car
-      )
+  if (loading || error) {
+    return (
+      <div className="page">
+        <LoadState loading={loading} error={error} onRetry={reload} loadingText="Loading fleet…" />
+      </div>
     )
   }
 
-  const activeCount = cars.filter((car) => car.is_active).length
-  const averageRate = Math.round(
-    cars.reduce((sum, car) => sum + car.daily_rate, 0) / cars.length
-  )
+  const categoryCount = new Set(cars.map((car) => car.category_id)).size
+  const averageRate = cars.length
+    ? cars.reduce((sum, car) => sum + Number(car.daily_rate), 0) / cars.length
+    : 0
 
   return (
     <div className="page">
       <div className="admin-head">
         <div className="page-header" style={{ marginBottom: 0 }}>
           <h1>Fleet admin</h1>
-          <p>Manage the cars customers can book.</p>
+          <p>Read-only until admin endpoints land. Inactive cars are hidden.</p>
         </div>
-        <button type="button" className="btn">
+        <button type="button" className="btn" disabled title={NOT_WIRED}>
           + Add car
         </button>
       </div>
 
       <dl className="stat-row">
         <div className="stat glass">
-          <dt>Total cars</dt>
+          <dt>Bookable cars</dt>
           <dd>{cars.length}</dd>
         </div>
         <div className="stat glass">
-          <dt>Active</dt>
-          <dd>{activeCount}</dd>
+          <dt>Categories</dt>
+          <dd>{categoryCount}</dd>
         </div>
         <div className="stat glass">
           <dt>Average rate</dt>
@@ -73,13 +83,14 @@ export default function Admin() {
                     type="button"
                     role="switch"
                     aria-checked={car.is_active}
-                    aria-label={`Toggle ${car.make} ${car.model}`}
+                    aria-label={`${car.make} ${car.model} active`}
                     className="toggle"
-                    onClick={() => toggleActive(car.id)}
+                    disabled
+                    title={NOT_WIRED}
                   />
                 </td>
                 <td>
-                  <button type="button" className="btn btn-ghost btn-sm">
+                  <button type="button" className="btn btn-ghost btn-sm" disabled title={NOT_WIRED}>
                     Edit
                   </button>
                 </td>
