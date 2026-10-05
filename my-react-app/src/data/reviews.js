@@ -22,7 +22,7 @@
 // ---------------------------------------------------------------------------
 
 // Shown under the page title. Set to '' to hide it.
-export const REVIEWS_NOTE = 'Sample reviews for demonstration.'
+export const REVIEWS_NOTE = 'Hear from real people who have used our services!'
 
 export const reviews = [
   {
