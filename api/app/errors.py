@@ -24,6 +24,12 @@ _PG_STATUS = {
     "23503": (400, "That referenced record does not exist."),
     "23514": (400, "That value is not allowed by a database constraint."),
     "42501": (403, "You do not have permission to do that."),
+    # Raised by enforce_booking_limits() in 002 (3 upcoming bookings max).
+    "CR001": (
+        409,
+        "You already have 3 upcoming bookings. Cancel one, or wait until one "
+        "is over, before booking another.",
+    ),
     # PostgREST couldn't find a function we called — almost always means a
     # migration in supabase/ hasn't been run yet. Say so instead of a generic
     # 500, because the fix is obvious once you know.
@@ -94,6 +100,10 @@ def register_error_handlers(app):
     @app.errorhandler(405)
     def _handle_405(_err):
         return _payload("Method not allowed for this endpoint.", "bad_request"), 405
+
+    @app.errorhandler(413)
+    def _handle_413(_err):
+        return _payload("Request body is too large.", "bad_request"), 413
 
     @app.errorhandler(Exception)
     def _handle_unexpected(err: Exception):

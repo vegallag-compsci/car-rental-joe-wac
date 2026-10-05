@@ -5,7 +5,13 @@ from flask import Blueprint, g, jsonify
 from .. import queries
 from ..auth import require_auth
 from ..errors import ApiError
-from ..validation import days_between, json_body, required_date, required_int
+from ..validation import (
+    check_booking_window,
+    days_between,
+    json_body,
+    required_date,
+    required_int,
+)
 
 bp = Blueprint("bookings", __name__, url_prefix="/api/bookings")
 
@@ -36,6 +42,9 @@ def create_booking():
     days = days_between(pickup, dropoff)
     if days < 1:
         raise ApiError("Return date must be at least one day after pickup.", 400)
+    # Same rules as enforce_booking_limits() in 002, checked here only for a
+    # clearer message; the database enforces them (and the 3-booking cap).
+    check_booking_window(pickup, days)
 
     booking = queries.create_booking(
         g.db,

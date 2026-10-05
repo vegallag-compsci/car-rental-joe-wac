@@ -107,6 +107,80 @@ create trigger bookings_set_price
 
 
 -- ---------------------------------------------------------------------------
+-- Booking limits, so one account can't hoard the fleet.
+--
+-- Without these, a single customer could hold every car for every date as
+-- 'pending' (pending bookings block others via bookings_no_overlap), book
+-- dates in the past, or book a car for years. Like the price trigger, this
+-- lives in the database because the anon key lets anyone skip Flask.
+--
+-- Applies to logged-in API callers only. The SQL Editor and service_role
+-- have no auth.uid() and are trusted maintenance paths.
+--
+-- security definer so the count sees all of the caller's bookings no matter
+-- how RLS changes later.
+-- ---------------------------------------------------------------------------
+create or replace function enforce_booking_limits()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  max_live_bookings constant integer := 3;
+  max_nights        constant integer := 30;
+  max_days_ahead    constant integer := 365;
+  live_count        integer;
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  -- One day of slack: current_date is UTC, which is already "tomorrow" for
+  -- US users in the evening, so their "today" must still be accepted.
+  if new.pickup_at < current_date - 1 then
+    raise exception 'Pickup date is in the past.'
+      using errcode = 'check_violation';
+  end if;
+
+  if new.pickup_at > current_date + max_days_ahead then
+    raise exception 'Bookings can be made at most % days ahead.', max_days_ahead
+      using errcode = 'check_violation';
+  end if;
+
+  if new.return_at - new.pickup_at > max_nights then
+    raise exception 'A booking can be at most % nights.', max_nights
+      using errcode = 'check_violation';
+  end if;
+
+  -- Serialise this user's inserts: otherwise two simultaneous requests could
+  -- both count 2 live bookings and each add a third, ending up with 4.
+  perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text, 0));
+
+  select count(*) into live_count
+  from bookings
+  where user_id = auth.uid()
+    and status in ('pending', 'confirmed', 'active')
+    and return_at >= current_date;
+
+  if live_count >= max_live_bookings then
+    -- Custom SQLSTATE so Flask can show a specific message (errors.py).
+    raise exception 'Limit of % upcoming bookings reached.', max_live_bookings
+      using errcode = 'CR001';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_limits on bookings;
+
+create trigger bookings_limits
+  before insert on bookings
+  for each row execute function enforce_booking_limits();
+
+
+-- ---------------------------------------------------------------------------
 -- Check it works — should list the 11 active cars, minus any booked that week
 -- ---------------------------------------------------------------------------
 select id, make, model, daily_rate

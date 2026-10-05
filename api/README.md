@@ -93,6 +93,28 @@ anon key — which ships in the React bundle.
 | GET | `/api/bookings` | ✅ | The caller's own bookings, each with an embedded `car` |
 | POST | `/api/bookings` | ✅ | `{ car_id, pickup_at, return_at }` |
 | POST | `/api/bookings/:id/cancel` | ✅ | Sets status to `cancelled` |
+| GET | `/api/admin/cars` | 🔒 | Whole fleet, including inactive cars |
+| POST | `/api/admin/cars` | 🔒 | Create. Required: `category_id, make, model, year, color, seats, transmission, daily_rate` |
+| PATCH | `/api/admin/cars/:id` | 🔒 | Any subset of the create fields, plus `mileage, image_url, is_active` |
+| GET | `/api/admin/bookings` | 🔒 | Everyone's bookings with `car` and `customer_email`. `?status=pending` |
+| PATCH | `/api/admin/bookings/:id` | 🔒 | `{ status }` only |
+| GET | `/api/admin/users` | 🔒 | Profiles and roles. `?email=jane` matches part of the email, any case (max 25) |
+| PATCH | `/api/admin/users/:uuid` | 🔒 | `{ role: "customer" \| "admin" }`. Not your own |
+
+✅ = logged in. 🔒 = logged in as an admin (403 otherwise).
+
+### How admin access is enforced
+
+`@require_admin` returns a clear 403 for non-admins, but it is **not** the
+security boundary. Admin queries run through `g.db`, the admin's own client,
+so RLS's `is_admin()` policies decide. If the decorator were removed, a
+customer would still read nothing and change nothing. Don't switch these
+routes to `get_admin_client()`: that would make the decorator the only
+protection.
+
+Admin writes accept only listed fields (`validation.car_payload`), so `id`,
+`created_at`, or a booking's `total_price` can't be set through the API. There
+is no car DELETE on purpose: bookings reference cars, so deactivate instead.
 
 Passing **both** `pickup` and `return` to `/api/cars` returns only cars with
 no overlapping booking. That path calls the `available_cars` function from
@@ -179,6 +201,7 @@ api/
     routes/
       health.py
       auth.py             Google login, refresh, me, logout
+      admin.py            fleet, all bookings, user roles (@require_admin)
       cars.py
       bookings.py
 ```

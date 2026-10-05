@@ -21,12 +21,7 @@ export default function AuthCallback() {
 
     completeSignIn(result.session).then(
       () => active && navigate(result.next, { replace: true }),
-      () =>
-        active &&
-        navigate(
-          `/login?error=${encodeURIComponent("We couldn't finish signing you in. Please try again.")}`,
-          { replace: true }
-        )
+      () => active && navigate('/login?error=failed', { replace: true })
     )
 
     return () => {

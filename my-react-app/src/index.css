@@ -1018,13 +1018,148 @@ button.nav-link {
    Admin
    ========================================================================== */
 
-.admin-head {
+/* Fleet / Bookings / Users switcher */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 10px 16px;
+  margin-bottom: -1px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--text);
+  font-weight: 500;
+  border-bottom-color: var(--text);
+}
+
+/* Booking status filters */
+.chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.chip:hover {
+  border-color: var(--text-faint);
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.chip-count {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+/* Add / Edit car form */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border-radius: var(--radius);
+}
+
+.admin-form-title {
+  font-size: 1.15rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.form-grid-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+/* Users search */
+.search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  border-radius: var(--radius);
+}
+
+.search-row .field {
+  flex: 1;
+}
+
+/* Buttons at the end of a table row */
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-inline {
+  display: inline-flex;
+  gap: 6px;
 }
 
 .stat-row {
@@ -1135,6 +1270,177 @@ tbody tr:hover {
 .toggle[aria-checked='true']::after {
   transform: translateX(17px);
   background: var(--accent-text);
+}
+
+/* ==========================================================================
+   Reviews
+   ========================================================================== */
+
+.reviews-note {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+/* Filled stars use the text color to stay inside the black/white palette. */
+.stars {
+  display: inline-flex;
+  gap: 2px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.star {
+  color: var(--border-strong);
+}
+
+.star-on {
+  color: var(--text);
+}
+
+.avatar-lg {
+  width: 46px;
+  height: 46px;
+  font-size: 1.1rem;
+}
+
+.review-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 32px;
+  align-items: center;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  border-radius: var(--radius);
+}
+
+.review-summary-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.review-summary-score strong {
+  font-size: 2.6rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.review-summary-score .faint {
+  font-size: 0.85rem;
+}
+
+.review-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.review-bar {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.review-bar dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.review-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-accent);
+  overflow: hidden;
+}
+
+.review-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+}
+
+.review-bar-count {
+  min-width: 1.5em;
+  text-align: right;
+}
+
+.review-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.review-toolbar .field {
+  width: 200px;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border-radius: var(--radius);
+}
+
+.review-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-card-head h3 {
+  font-size: 1rem;
+}
+
+.review-card-head time {
+  font-size: 0.82rem;
+}
+
+.review-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.review-body {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.review-car {
+  margin-top: auto;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 620px) {
+  .review-summary {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .review-toolbar .field {
+    width: 100%;
+  }
+
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Misc ----------------------------------------------------------------- */

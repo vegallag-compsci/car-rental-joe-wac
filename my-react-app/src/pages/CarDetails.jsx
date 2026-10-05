@@ -157,6 +157,8 @@ export default function CarDetails() {
               type="date"
               value={pickup}
               min={dateInDays(0)}
+              // Bookings open at most a year ahead (enforce_booking_limits in 002).
+              max={dateInDays(365)}
               onChange={(e) => setPickup(e.target.value)}
             />
           </div>

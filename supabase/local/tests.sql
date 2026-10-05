@@ -280,7 +280,16 @@ reset role;
 
 -- ===========================================================================
 -- 7. Customer: alice
+--
+-- Dates here are relative to today, because enforce_booking_limits() rejects
+-- past pickups; fixed dates would make these tests start failing over time.
 -- ===========================================================================
+
+-- A future booking of bob's that alice can't see (inserted as superuser, so
+-- no limits apply), for the hidden-overlap test below.
+insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+values (:bob, 4, current_date + 40, current_date + 44, 0);
+
 select t.section('RLS: customer');
 select t.act_as('authenticated', :alice);
 
@@ -289,12 +298,12 @@ select t.eq((select count(*) from profiles), 1::bigint, 'sees only her own profi
 select t.eq(is_admin(), false, 'is_admin() is false');
 
 select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
-                         values (%L, 5, '2026-11-01', '2026-11-04', 0)$$, :bob),
+                         values (%L, 5, current_date + 30, current_date + 33, 0)$$, :bob),
                 '42501', 'cannot book on behalf of another user');
 
 -- A real booking, with a lie about price and status.
 insert into bookings (user_id, car_id, pickup_at, return_at, status, total_price)
-values (:alice, 5, '2026-11-01', '2026-11-04', 'confirmed', 1);
+values (:alice, 5, current_date + 30, current_date + 33, 'confirmed', 1);
 
 select t.eq((select total_price from bookings where car_id = 5), 186.00::numeric,
             'her booking is priced by the database');
@@ -302,11 +311,11 @@ select t.eq((select status from bookings where car_id = 5), 'pending',
             'her booking starts pending');
 
 select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
-                         values (%L, 4, '2026-10-05', '2026-10-06', 0)$$, :alice),
+                         values (%L, 4, current_date + 41, current_date + 43, 0)$$, :alice),
                 '23P01', 'overlap with a booking she cannot see is still rejected');
 
 select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
-                         values (%L, 3, '2026-12-01', '2026-12-02', 0)$$, :alice),
+                         values (%L, 3, current_date + 50, current_date + 51, 0)$$, :alice),
                 '23514', 'cannot book an inactive car directly');
 
 select t.throws($$update bookings set status = 'confirmed' where car_id = 5$$,
@@ -328,12 +337,44 @@ select t.eq((select status from bookings where car_id = 5), 'cancelled',
 select t.eq(t.affected($$update bookings set status = 'pending' where car_id = 5$$),
             0, 'cannot un-cancel it');
 
+-- Booking limits (002 enforce_booking_limits). Her only booking is now
+-- cancelled, so she has 0 live bookings here.
+select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                         values (%L, 6, current_date - 3, current_date + 2, 0)$$, :alice),
+                '23514', 'cannot book a pickup in the past');
+select t.eq(t.affected(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                                values (%L, 6, current_date - 1, current_date + 2, 0)$$, :alice)),
+            1, 'yesterday (UTC time-zone slack) is still allowed');
+select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                         values (%L, 6, current_date + 400, current_date + 402, 0)$$, :alice),
+                '23514', 'cannot book more than a year ahead');
+select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                         values (%L, 6, current_date + 10, current_date + 41, 0)$$, :alice),
+                '23514', 'cannot book more than 30 nights');
+select t.eq(t.affected(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                                values (%L, 6, current_date + 100, current_date + 102, 0),
+                                       (%L, 7, current_date + 100, current_date + 102, 0),
+                                       (%L, 8, current_date + 100, current_date + 102, 0)$$,
+                                :alice, :alice, :alice)),
+            3, 'can hold 3 upcoming bookings');
+select t.throws(format($$insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+                         values (%L, 6, current_date + 100, current_date + 102, 0),
+                                (%L, 7, current_date + 100, current_date + 102, 0),
+                                (%L, 8, current_date + 100, current_date + 102, 0),
+                                (%L, 9, current_date + 100, current_date + 102, 0)$$,
+                       :alice, :alice, :alice, :alice),
+                'CR001', 'cannot hoard: a 4th upcoming booking is rejected');
+
 select t.eq(t.affected($$update profiles set role = 'admin'$$),
             0, 'cannot promote herself to admin');
 select t.throws(format($$insert into profiles (id, role) values (%L, 'admin')$$,
                        gen_random_uuid()),
                 '42501', 'cannot insert an admin profile');
 select t.eq(t.affected('update cars set daily_rate = 1'), 0, 'cannot change prices');
+select t.throws($$insert into cars (category_id, make, model, year, color, seats, transmission, daily_rate)
+                  values (1, 'Fake', 'Car', 2024, 'Red', 4, 'manual', 1)$$,
+                '42501', 'cannot add a car');
+select t.eq(t.affected('update cars set is_active = false'), 0, 'cannot deactivate cars');
 
 reset role;
 
@@ -344,7 +385,7 @@ reset role;
 select t.section('RLS: other customer');
 select t.act_as('authenticated', :bob);
 
-select t.eq((select count(*) from bookings), 0::bigint, 'cannot see alice''s booking');
+select t.eq((select count(*) from bookings where user_id = :alice), 0::bigint, 'cannot see alice''s booking');
 select t.eq(t.affected($$update bookings set status = 'cancelled' where car_id = 5$$),
             0, 'cannot cancel alice''s booking');
 
@@ -358,7 +399,7 @@ select t.section('RLS: admin');
 select t.act_as('authenticated', :admin);
 
 select t.eq(is_admin(), true, 'is_admin() is true');
-select t.eq((select count(*) from bookings), 4::bigint, 'sees every booking');
+select t.eq((select count(*) from bookings), 5::bigint, 'sees every booking');
 select t.eq((select count(*) from cars), 12::bigint, 'sees inactive cars too');
 select t.eq((select count(*) from profiles), 3::bigint, 'sees every profile');
 select t.eq(t.affected($$update bookings set status = 'confirmed' where id = 2$$),
@@ -371,6 +412,14 @@ select t.eq(t.affected(format($$update profiles set role = 'admin' where id = %L
             1, 'can promote a user');
 select t.eq(t.affected($$delete from bookings where id = 3$$),
             1, 'can delete a booking');
+-- What the Flask admin endpoints do, through the admin's own client (g.db).
+select t.eq(t.affected($$insert into cars (category_id, make, model, year, color, seats, transmission, daily_rate)
+                         values (2, 'Honda', 'Civic', 2025, 'Blue', 5, 'automatic', 55)$$),
+            1, 'can add a car');
+select t.eq(t.affected($$update bookings set status = 'returned' where id = 1$$),
+            1, 'can mark a booking returned');
+select t.eq(t.affected($$update cars set image_url = 'x', model = 'Corolla Hybrid' where id = 1$$),
+            1, 'can edit car details');
 
 reset role;
 
@@ -381,7 +430,7 @@ reset role;
 select t.section('RLS: service_role');
 select t.act_as('service_role', null);
 
-select t.eq((select count(*) from bookings), 4::bigint, 'bypasses RLS on bookings');
+select t.eq((select count(*) from bookings), 5::bigint, 'bypasses RLS on bookings');
 select t.eq((select count(*) from cars), 12::bigint, 'bypasses RLS on cars');
 
 reset role;

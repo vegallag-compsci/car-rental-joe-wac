@@ -1,0 +1,88 @@
+// ---------------------------------------------------------------------------
+// CUSTOMER REVIEWS: edit this file to change what /reviews shows.
+//
+// Each review is one { ... } block. To add a review, copy a block and change
+// the values; to remove one, delete its block. The page sorts by date
+// itself, so order here doesn't matter.
+//
+//   id          any unique number (just don't repeat one)
+//   name        shown as the reviewer's name
+//   avatar_url  link to a profile picture. Leave as '' to show their initial
+//               instead. A broken link also falls back to the initial.
+//   rating      whole stars, 1 to 5
+//   date        'YYYY-MM-DD', e.g. '2026-09-14'
+//   car         optional: the car they rented ('' to hide)
+//   title       short headline
+//   body        the review text
+//
+// These are sample reviews for the class project. If this site is ever used
+// for a real business, replace them with real ones: invented reviews
+// presented as genuine are illegal for real businesses (in the US, the FTC's
+// 2024 rule on fake reviews).
+// ---------------------------------------------------------------------------
+
+// Shown under the page title. Set to '' to hide it.
+export const REVIEWS_NOTE = 'Sample reviews for demonstration.'
+
+export const reviews = [
+  {
+    id: 1,
+    name: 'Maya Thompson',
+    avatar_url: 'https://i.pravatar.cc/150?img=47',
+    rating: 5,
+    date: '2026-09-28',
+    car: 'Toyota Camry',
+    title: 'Easiest rental I have ever done',
+    body: 'Booked on my phone in about a minute, and the car was spotless at pickup. The price I saw was exactly what I paid. I will be back.',
+  },
+  {
+    id: 2,
+    name: 'Daniel Okafor',
+    avatar_url: 'https://i.pravatar.cc/150?img=12',
+    rating: 4,
+    date: '2026-09-15',
+    car: 'Jeep Grand Cherokee',
+    title: 'Great SUV for a weekend trip',
+    body: 'Plenty of room for four of us and our bags. Pickup took a few minutes longer than expected, but the staff were friendly and the Jeep drove great.',
+  },
+  {
+    id: 3,
+    name: 'Priya Raman',
+    avatar_url: 'https://i.pravatar.cc/150?img=32',
+    rating: 5,
+    date: '2026-08-30',
+    car: 'BMW 5 Series',
+    title: 'Worth the splurge',
+    body: 'Rented the BMW for a wedding. It was immaculate and felt brand new. Cancelling one of my other bookings was also painless.',
+  },
+  {
+    id: 4,
+    name: 'Marcus Lee',
+    avatar_url: '',
+    rating: 3,
+    date: '2026-08-11',
+    car: 'Kia Rio',
+    title: 'Fine for getting around town',
+    body: 'Cheap and reliable, which is what I needed. A little small for road trips, and I wish there were more automatic options in Economy.',
+  },
+  {
+    id: 5,
+    name: 'Sofia Martinez',
+    avatar_url: 'https://i.pravatar.cc/150?img=45',
+    rating: 5,
+    date: '2026-07-22',
+    car: 'Chrysler Pacifica',
+    title: 'Perfect family van',
+    body: 'Seven seats, tons of storage, and the kids loved it. The booking page made it obvious what we would pay before we committed.',
+  },
+  {
+    id: 6,
+    name: 'James Whitfield',
+    avatar_url: 'https://i.pravatar.cc/150?img=59',
+    rating: 4,
+    date: '2026-07-03',
+    car: 'Honda Accord',
+    title: 'Smooth and simple',
+    body: 'Comfortable car with good mileage. Only knock is that I would like to be able to change my dates online instead of cancelling and rebooking.',
+  },
+]

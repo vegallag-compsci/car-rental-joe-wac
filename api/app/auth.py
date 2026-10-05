@@ -9,6 +9,7 @@ from functools import wraps
 
 from flask import g, request
 
+from . import queries
 from .errors import ApiError
 from .supabase_client import get_user_client, verify_token
 
@@ -48,6 +49,27 @@ def require_auth(view):
         g.user = user
         g.user_id = user.id
         g.db = get_user_client(token)
+        return view(*args, **kwargs)
+
+    return wrapper
+
+
+def require_admin(view):
+    """require_auth, plus a 403 for anyone whose profile role isn't 'admin'.
+
+    This check exists for a clear error message, NOT as the security
+    boundary. Admin queries still run through g.db, i.e. as the caller, so
+    if this decorator were missing a non-admin would still be stopped by
+    RLS (is_admin() policies): reads come back empty, writes change nothing.
+    Never pair this with get_admin_client(); that would make this check the
+    only thing standing between a customer and the whole database.
+    """
+
+    @wraps(view)
+    @require_auth
+    def wrapper(*args, **kwargs):
+        if queries.get_role(g.db, g.user_id) != "admin":
+            raise ApiError("This needs an admin account.", 403)
         return view(*args, **kwargs)
 
     return wrapper

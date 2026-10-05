@@ -8,6 +8,8 @@ Each function takes the client to use as its first argument, so the caller
 decides whether a query runs as anonymous, as a user, or as admin.
 """
 
+from postgrest.exceptions import APIError
+
 from .errors import ApiError
 
 # Columns we expose. Listing them explicitly means adding an internal column
@@ -220,16 +222,118 @@ def get_role(db, user_id):
 
 
 # --- admin -----------------------------------------------------------------
+#
+# Every function here expects the ADMIN USER'S OWN client (g.db from
+# @require_admin), never get_admin_client(). The cars_admin_write,
+# bookings_admin_update and profiles_admin_write policies let an admin do all
+# of this, so the service_role key isn't needed, and if a non-admin's client
+# ever got here RLS would refuse it.
+#
+# Under RLS a refused UPDATE changes zero rows instead of raising, which is
+# why "no rows came back" is reported as a 404.
 
-def set_car_active(db, car_id, is_active: bool):
-    """Toggle a car's availability. Expects an admin client."""
+ADMIN_BOOKING_FIELDS = f"{BOOKING_WITH_CAR_FIELDS}, user_id"
+
+
+def create_car(db, fields):
+    rows = db.table("cars").insert(fields).execute().data
+    if not rows:
+        raise ApiError("Could not create that car.", 500)
+    return rows[0]
+
+
+def update_car(db, car_id, fields):
+    """Change some of a car's columns, e.g. {"is_active": False}.
+
+    There is deliberately no delete: bookings reference cars, and history
+    should survive. Deactivate a car to take it out of service.
+    """
+    rows = db.table("cars").update(fields).eq("id", car_id).execute().data
+    if not rows:
+        raise ApiError(f"No car with id {car_id}.", 404)
+    return rows[0]
+
+
+def list_all_bookings(db, *, status=None):
+    """Every booking, newest pickup first, with its car and customer email.
+
+    bookings.user_id points at auth.users, which the REST API can't embed,
+    so emails come from profiles in a second query rather than one per row.
+    """
+    query = db.table("bookings").select(ADMIN_BOOKING_FIELDS)
+    if status:
+        query = query.eq("status", status)
+    bookings = query.order("pickup_at", desc=True).execute().data
+
+    user_ids = sorted({b["user_id"] for b in bookings if b["user_id"]})
+    emails = {}
+    if user_ids:
+        profiles = db.table("profiles").select("id, email").in_("id", user_ids).execute().data
+        emails = {p["id"]: p["email"] for p in profiles}
+
+    for booking in bookings:
+        # None for the unowned seed bookings.
+        booking["customer_email"] = emails.get(booking["user_id"])
+    return bookings
+
+
+def set_booking_status(db, booking_id, status):
+    """Admins may move a booking to any status (bookings_admin_update).
+
+    Only `status` is sent. The column grant in 003 means it's the only
+    booking column anyone can update through the API anyway; changing dates
+    or the car is a SQL Editor job.
+    """
+    try:
+        rows = (
+            db.table("bookings")
+            .update({"status": status})
+            .eq("id", booking_id)
+            .execute()
+            .data
+        )
+    except APIError as err:
+        # Reviving a cancelled booking can collide with one made since. The
+        # default 23P01 message is written for customers, so say it plainly.
+        if err.code == "23P01":
+            raise ApiError(
+                "Another live booking already holds those dates for this car.", 409
+            )
+        raise
+    if not rows:
+        raise ApiError(f"No booking with id {booking_id}.", 404)
+    return rows[0]
+
+
+USER_SEARCH_LIMIT = 25
+
+
+def _escape_like(text):
+    """Make LIKE's wildcards (% and _) match literally.
+
+    Without this, searching "a_b" would also match "axb", and "%" alone
+    would list everyone. (PostgREST also treats * as a wildcard and has no
+    escape for it; emails essentially never contain one.)
+    """
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def list_profiles(db, *, email=None):
+    """Profiles, optionally those whose email contains `email` (any case)."""
+    query = db.table("profiles").select("id, email, role, created_at")
+    if email:
+        query = query.ilike("email", f"%{_escape_like(email)}%")
+    return query.order("email").limit(USER_SEARCH_LIMIT).execute().data
+
+
+def set_role(db, user_id, role):
     rows = (
-        db.table("cars")
-        .update({"is_active": is_active})
-        .eq("id", car_id)
+        db.table("profiles")
+        .update({"role": role})
+        .eq("id", user_id)
         .execute()
         .data
     )
     if not rows:
-        raise ApiError(f"No car with id {car_id}.", 404)
+        raise ApiError("No user with that id.", 404)
     return rows[0]

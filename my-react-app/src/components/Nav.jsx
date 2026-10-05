@@ -11,6 +11,7 @@ export default function Nav() {
   // The Admin link is a convenience only; RLS is what limits admin actions.
   const links = [
     { to: '/cars', label: 'Find a car' },
+    { to: '/reviews', label: 'Reviews' },
     { to: '/bookings', label: 'My bookings' },
     ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin' }] : []),
   ]

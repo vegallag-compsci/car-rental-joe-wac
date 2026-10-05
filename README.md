@@ -137,8 +137,8 @@ supabase/
 1. ~~Connect the React pages to the API.~~ Done.
 2. ~~Authentication.~~ Google sign-in through Flask is done. See "Google
    login" in [api/README.md](api/README.md) for the one-time dashboard setup.
-3. **Admin routes.** The admin page's toggle and Edit buttons are UI only.
-   The API has no admin endpoints yet; `get_admin_client()` is ready for them.
+3. ~~Admin.~~ Done: `/admin` has Fleet, Bookings, and Users tabs (see
+   [api/README.md](api/README.md) for the endpoints).
 4. **Deployment.** `BrowserRouter` needs a host-side catch-all rewrite to
    `index.html`, or `/cars/9` will 404. Flask needs hosting separately from
    the static front end.

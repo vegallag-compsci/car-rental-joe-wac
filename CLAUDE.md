@@ -24,8 +24,8 @@ real data lives in Supabase.
 | Layer | State |
 | --- | --- |
 | Database (`supabase/`) | **Done.** 001–003 applied to the live Supabase project. 76/76 local tests pass. |
-| Flask API (`api/`) | **Done for public + customer routes.** `verify.py` passes against live Supabase. No admin routes yet. |
-| React UI (`my-react-app/`) | **On the API.** Mock data is gone. Every page loads through `src/api/*` + `useAsync`. Reserve (CarDetails) and list/cancel (`/bookings`) call the real endpoints but show a "log in" prompt on 401 until auth exists. Admin is read-only (public fleet, inactive cars hidden). |
+| Flask API (`api/`) | **Public, customer, auth, and admin routes done.** `verify.py` passes against live Supabase. Admin routes (`routes/admin.py`) are tested for 401/403/validation and the RLS backstop, but not yet with a real admin login. |
+| React UI (`my-react-app/`) | **On the API.** Mock data is gone. Every page loads through `src/api/*` + `useAsync`. Admin page (`pages/Admin.jsx` + `pages/admin/*Panel.jsx`) has three tabs: Fleet (add/edit/toggle), Bookings (approve, pick-up, return, decline/cancel, reopen), Users (email search, grant/remove admin). Not yet clicked through with a real admin login. |
 | Auth | **Google only, run through Flask** (`api/app/routes/auth.py`, PKCE). React has no Supabase SDK or keys: `src/auth/` holds the session (access token in memory, refresh token in localStorage) and `useAuth()`. Needs the Supabase Redirect URL set (see `api/.env.example`). Not yet tested with a real Google login. |
 
 ### Roadmap, in order
@@ -36,10 +36,9 @@ real data lives in Supabase.
    `supabase/003_rls.sql` (make yourself admin, claim the seed bookings).
 3. Real bookings: the UI is already wired (create from CarDetails, list and
    cancel on `/bookings`). It needs a manual test as a logged-in user.
-4. Admin: add `api/app/routes/admin.py`. `queries.set_car_active` exists but
-   nothing calls it. Prefer the admin user's own client (`g.db`), because the
-   RLS admin policies already allow it. `get_admin_client()` (service_role)
-   is a last resort, and `SUPABASE_SERVICE_ROLE_KEY` is currently unset.
+4. ~~Admin~~ (endpoints and UI done; all `@require_admin` + `g.db`).
+   Keep using `g.db`; `get_admin_client()` (service_role) is still unused and
+   `SUPABASE_SERVICE_ROLE_KEY` unset, which is the safer state.
 5. Cleanup: fix car #2's `transmission = 'AutoManual'` (then tighten the
    CHECK; instructions are in 001), make `bookings.user_id` NOT NULL once
    every row has an owner, then deploy.
@@ -53,6 +52,7 @@ my-react-app/                 React 19, Vite 8, react-router-dom 7, oxlint. No U
   src/components/             CarCard, CategoryBadge, StatusBadge, SearchBar, Nav, Footer, ScrollToTop,
                               LoadState (shared loading / error + retry placeholder)
   src/utils/format.js         formatMoney, formatDate, daysBetween, dateInDays, getCarLabel
+  src/data/reviews.js         /reviews content (sample reviews, static, edited by hand; not in the DB)
   src/api/client.js           fetch wrapper: base URL, Bearer token, ApiError(status, code)
   src/api/cars.js, bookings.js  one function per endpoint
   src/hooks/useAsync.js       { loading, data, error, reload, setData } with AbortController
@@ -73,7 +73,8 @@ api/                          Flask 3, flask-cors, supabase-py 2, python-dotenv.
   app/queries.py              EVERY database call lives here
   app/validation.py           input parsing -> 400s
   app/errors.py               single JSON error shape; maps Postgres codes to HTTP
-  app/routes/                 health.py, auth.py (Google login), cars.py, bookings.py; register in routes/__init__.py BLUEPRINTS
+  app/routes/                 health.py, auth.py (Google login), cars.py, bookings.py, admin.py; register in routes/__init__.py BLUEPRINTS
+  app/auth.py                 @require_auth, @require_admin (403 for UX; RLS is the real check)
 
 supabase/
   001_schema_and_seed.sql     tables, seed rows, no-overlap exclusion constraint. DROPS TABLES - destructive.
@@ -117,6 +118,12 @@ image_url}`. That field is null if RLS hides the car because it was deactivated.
    (column grant in 003). Customers may only move their own
    pending/confirmed booking to `cancelled`. Changing dates or car is a SQL
    Editor / service_role operation.
+   **Booking limits live in the database too** (`enforce_booking_limits`
+   trigger in 002): pickup not in the past (1 day UTC slack), at most 365
+   days ahead, at most 30 nights, at most 3 upcoming live bookings per user
+   (SQLSTATE `CR001` -> 409). They stop one account hoarding the fleet.
+   Flask repeats the date rules in `validation.check_booking_window` for
+   clearer messages; keep the numbers in sync.
 5. **Inactive cars cannot be booked.** The trigger enforces this (`23514`), and
    RLS hides them from non-admins.
 6. **`available_cars()` and `set_booking_price()` must stay

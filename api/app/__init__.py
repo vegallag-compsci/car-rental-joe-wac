@@ -17,6 +17,10 @@ from .routes import BLUEPRINTS
 def create_app(*, validate_config: bool = True) -> Flask:
     app = Flask(__name__)
 
+    # Every legitimate request body here is a few hundred bytes of JSON. Cap
+    # it so nobody can tie up the server by uploading megabytes (413).
+    app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+
     logging.basicConfig(
         level=logging.INFO if config.is_production else logging.DEBUG,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",

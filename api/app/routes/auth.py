@@ -74,8 +74,14 @@ def _to_frontend(path: str, fragment: dict | None = None, query: dict | None = N
     return redirect(url)
 
 
-def _login_failed(message: str):
-    response = _to_frontend("/login", query={"error": message})
+def _login_failed(code: str):
+    """Back to /login with a short error code, never message text.
+
+    The login page maps codes to its own wording. If it displayed whatever
+    ?error= said, anyone could link to our real site with "Your account is
+    locked, call this number..." shown on the login page (content spoofing).
+    """
+    response = _to_frontend("/login", query={"error": code})
     response.delete_cookie(VERIFIER_COOKIE, path=COOKIE_OPTIONS["path"])
     response.delete_cookie(NEXT_COOKIE, path=COOKIE_OPTIONS["path"])
     return response
@@ -114,13 +120,13 @@ def callback():
     # The user pressed Cancel on Google, or Supabase rejected the request.
     if request.args.get("error"):
         log.info("oauth error: %s", request.args.get("error_description"))
-        return _login_failed("Google sign-in was cancelled or failed. Please try again.")
+        return _login_failed("cancelled")
 
     code = request.args.get("code")
     verifier = request.cookies.get(VERIFIER_COOKIE)
     if not code or not verifier:
         # Usually the cookie expired, or the callback URL was opened directly.
-        return _login_failed("Your sign-in link expired. Please try again.")
+        return _login_failed("expired")
 
     try:
         result = get_auth_client().auth.exchange_code_for_session(
@@ -132,7 +138,7 @@ def callback():
         )
     except AuthError as err:
         log.warning("code exchange failed: %s", err)
-        return _login_failed("We couldn't finish signing you in. Please try again.")
+        return _login_failed("failed")
 
     response = _to_frontend(
         "/auth/callback",

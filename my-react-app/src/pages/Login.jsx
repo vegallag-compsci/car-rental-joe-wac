@@ -2,13 +2,23 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { safeRedirectPath } from '../auth/session'
 
+// ?error= carries a code from Flask (routes/auth.py), never text to show.
+// Displaying the raw parameter would let anyone put their own message on
+// our login page via a crafted link.
+const ERROR_MESSAGES = {
+  cancelled: 'Google sign-in was cancelled. Please try again.',
+  expired: 'Your sign-in link expired. Please try again.',
+  failed: "We couldn't finish signing you in. Please try again.",
+}
+
 // Google is the only way in. Signing in for the first time creates the
 // account (Supabase adds the user, and a trigger adds their profile row).
 export default function Login() {
   const { status, signIn } = useAuth()
   const [searchParams] = useSearchParams()
   const next = safeRedirectPath(searchParams.get('next'))
-  const error = searchParams.get('error')
+  const errorCode = searchParams.get('error')
+  const error = errorCode ? (ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.failed) : null
 
   if (status === 'signedIn') return <Navigate to={next} replace />
 
