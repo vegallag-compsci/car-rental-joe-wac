@@ -1468,6 +1468,26 @@ tbody tr:hover {
   margin: 0;
 }
 
+/* Make/model search above the results. The icon sits inside the input, so
+   the input's left padding makes room for it. */
+.car-search {
+  position: relative;
+  margin-bottom: var(--space-3);
+}
+
+.car-search svg {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  translate: 0 -50%;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.car-search input {
+  padding-left: calc(var(--space-3) * 2 + 20px);
+}
+
 .filter-open {
   margin-left: auto;
 }

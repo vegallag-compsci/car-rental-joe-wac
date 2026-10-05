@@ -158,7 +158,9 @@ image_url}`. That field is null if RLS hides the car because it was deactivated.
   `request()`. Use `useAsync((signal) => apiFn({ ..., signal }), [deps])` so
   stale requests are aborted. Filters live in the URL query string
   (`/cars?category=3&sort=price-asc`), which maps 1:1 onto the API params.
-  Sort keys are `price-asc`, `price-desc`, `newest`.
+  Sort keys are `price-asc`, `price-desc`, `newest`. Exception: `q` (make/model
+  search) filters the already-loaded list in the browser and never reaches
+  the API.
 - **Dates** are `YYYY-MM-DD` strings end to end. Nights =
   `return - pickup` (`daysBetween` in JS, `days_between` in Python; keep them
   in sync).

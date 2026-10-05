@@ -58,7 +58,7 @@ export const reviews = [
   {
     id: 4,
     name: 'Marcus Lee',
-    avatar_url: '',
+    avatar_url: 'https://images.ctfassets.net/l7h59hfnlxjx/6CHW66qpj6xhCpywkIqKGg/974baaec51a038bdd11d704045e07a2c/P44_headshot.png?q=75&w=1014&fm=',
     rating: 3,
     date: '2026-08-11',
     car: 'Kia Rio',

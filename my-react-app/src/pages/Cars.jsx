@@ -3,16 +3,25 @@ import { useSearchParams } from 'react-router-dom'
 import { getCars } from '../api/cars'
 import CarCard from '../components/CarCard'
 import CarGridSkeleton from '../components/CarGridSkeleton'
-import { CloseIcon, FiltersIcon } from '../components/icons'
+import { CloseIcon, FiltersIcon, SearchIcon } from '../components/icons'
 import LoadState from '../components/LoadState'
 import { useAsync } from '../hooks/useAsync'
 import { useCategories } from '../hooks/useCategories'
 import { useOverlay } from '../hooks/useOverlay'
 import { daysBetween, formatDate } from '../utils/format'
 
+// Every typed word has to appear in the make or model, so "honda accord"
+// finds Honda Accords and "accord" alone finds them too.
+function matchesSearch(car, words) {
+  const text = `${car.make} ${car.model}`.toLowerCase()
+  return words.every((word) => text.includes(word))
+}
+
 export default function Cars() {
   // Filters live in the URL so links like /cars?category=3 just work, and so a
-  // filtered view can be shared or bookmarked. The params map 1:1 onto the API.
+  // filtered view can be shared or bookmarked. The params map 1:1 onto the API,
+  // except `q`: the fleet is small and already loaded, so the make/model search
+  // filters in the browser and updates as you type without a request per key.
   const [searchParams, setSearchParams] = useSearchParams()
   const { categories } = useCategories()
 
@@ -26,6 +35,7 @@ export default function Cars() {
   const dropoff = searchParams.get('return') ?? ''
   const categoryId = searchParams.get('category') ?? 'all'
   const sort = searchParams.get('sort') ?? 'default'
+  const search = searchParams.get('q') ?? ''
 
   // The API only filters by availability when it gets a valid date range, and
   // rejects a backwards one, so only send dates once both make sense.
@@ -44,14 +54,20 @@ export default function Cars() {
     [categoryId, sort, hasDates, pickup, dropoff]
   )
 
-  function updateParam(key, value) {
+  const searchWords = search.toLowerCase().split(/\s+/).filter(Boolean)
+  const shownCars =
+    cars && searchWords.length > 0
+      ? cars.filter((car) => matchesSearch(car, searchWords))
+      : cars
+
+  function updateParam(key, value, options) {
     const next = new URLSearchParams(searchParams)
     if (value) {
       next.set(key, value)
     } else {
       next.delete(key)
     }
-    setSearchParams(next)
+    setSearchParams(next, options)
   }
 
   // Carry the searched dates through to the details page.
@@ -156,10 +172,27 @@ export default function Cars() {
         <div className="scrim filter-scrim" data-open={filtersOpen} aria-hidden="true" onClick={closeFilters} />
 
         <section aria-label="Results">
+          <div className="field car-search" role="search">
+            <label htmlFor="car-search" className="visually-hidden">
+              Search by make or model
+            </label>
+            <SearchIcon />
+            <input
+              id="car-search"
+              type="search"
+              value={search}
+              maxLength={60}
+              autoComplete="off"
+              placeholder="Search make or model, e.g. Honda Accord"
+              // replace: typing shouldn't add a history entry per keystroke.
+              onChange={(e) => updateParam('q', e.target.value, { replace: true })}
+            />
+          </div>
+
           <div className="results-bar">
             {!loading && !error && (
-              <p className="results-count">
-                {cars.length} {cars.length === 1 ? 'car' : 'cars'} available
+              <p className="results-count" aria-live="polite">
+                {shownCars.length} {shownCars.length === 1 ? 'car' : 'cars'} available
               </p>
             )}
             <button
@@ -184,7 +217,8 @@ export default function Cars() {
           <CarResults
             loading={loading}
             error={error}
-            cars={cars}
+            cars={shownCars}
+            searched={searchWords.length > 0}
             onRetry={reload}
             detailSearch={detailSearch}
           />
@@ -195,14 +229,16 @@ export default function Cars() {
 }
 
 // Skeleton, error, empty message or the grid, depending on the request.
-function CarResults({ loading, error, cars, onRetry, detailSearch }) {
+function CarResults({ loading, error, cars, searched, onRetry, detailSearch }) {
   if (loading) return <CarGridSkeleton />
   if (error) return <LoadState error={error} onRetry={onRetry} />
 
   if (cars.length === 0) {
     return (
       <div className="empty-state glass">
-        No cars match those filters. Try different dates or another category.
+        {searched
+          ? 'No cars match that search. Check the spelling, or clear it to see every car.'
+          : 'No cars match those filters. Try different dates or another category.'}
       </div>
     )
   }
