@@ -70,6 +70,8 @@ def days_between(pickup: str, dropoff: str) -> int:
 
 BOOKING_STATUSES = ("pending", "confirmed", "active", "returned", "cancelled")
 ROLES = ("customer", "admin")
+# Matches the target_type CHECK on audit_log (supabase/004_audit_log.sql).
+AUDIT_TARGET_TYPES = ("car", "category", "booking", "user")
 # Deliberately excludes the legacy 'AutoManual' the CHECK still allows.
 TRANSMISSIONS = ("automatic", "manual")
 

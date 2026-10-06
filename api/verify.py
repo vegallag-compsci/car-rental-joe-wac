@@ -155,6 +155,21 @@ except Exception as exc:
         problems.append(("BLOCKER", "RLS not installed",
                          "Run supabase/003_rls.sql."))
 
+# 004 - audit_log. Anonymous has no SELECT grant on it, so "permission
+# denied" is the healthy answer; a successful query means the grants are off.
+try:
+    anon.table("audit_log").select("id").limit(1).execute()
+    line(False, "004 audit log installed", "anonymous can query audit_log")
+    problems.append(("HIGH", "Audit log is not locked down",
+                     "Re-run supabase/004_audit_log.sql."))
+except Exception as exc:
+    if blocked_by_rls(exc):
+        line(True, "004 audit log installed", "present and admin-only")
+    else:
+        line(False, "004 audit log installed", str(exc)[:70])
+        problems.append(("HIGH", "Admin changes are not being logged",
+                         "Run supabase/004_audit_log.sql."))
+
 
 # ===========================================================================
 header("4. Row Level Security  (the important one)")
@@ -246,6 +261,7 @@ endpoint("get", "/api/cars?category=abc", 400, "bad category rejected")
 endpoint("get", "/api/cars?sort=bogus", 400, "bad sort rejected")
 endpoint("get", "/api/bookings", 401, "bookings need a token")
 endpoint("post", "/api/bookings/1/cancel", 401, "cancel needs a token")
+endpoint("get", "/api/admin/audit", 401, "audit log needs a token")
 
 r = c.get("/api/cars?pickup=2026-10-05&return=2026-10-07")
 if has_002:

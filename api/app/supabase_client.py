@@ -36,17 +36,23 @@ def get_client() -> Client:
     )
 
 
-def get_user_client(access_token: str) -> Client:
+def get_user_client(access_token: str, client_ip: str | None = None) -> Client:
     """Client that acts as the user owning `access_token`.
 
     Queries run with that user's identity, so `auth.uid()` in RLS policies
     resolves to them. Not cached — each call is tied to one user's token.
+
+    `client_ip` is the end user's address, sent as X-Client-IP for the audit
+    log (supabase/004_audit_log.sql). Without it, Supabase would only see
+    this Flask server's address.
     """
     client = create_client(
         config.SUPABASE_URL, config.SUPABASE_ANON_KEY, options=_OPTIONS
     )
     # Swap the anon key for the user's JWT on data requests.
     client.postgrest.auth(access_token)
+    if client_ip:
+        client.postgrest.headers["X-Client-IP"] = client_ip
     return client
 
 

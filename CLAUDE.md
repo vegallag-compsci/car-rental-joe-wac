@@ -23,9 +23,9 @@ real data lives in Supabase.
 
 | Layer | State |
 | --- | --- |
-| Database (`supabase/`) | **Done.** 001–003 applied to the live Supabase project. 76/76 local tests pass. |
+| Database (`supabase/`) | **Done.** 001–003 applied to the live Supabase project. **004 (audit log) written and tested locally, not yet applied to Supabase.** 108/108 local tests pass. |
 | Flask API (`api/`) | **Public, customer, auth, and admin routes done.** `verify.py` passes against live Supabase. Admin routes (`routes/admin.py`) are tested for 401/403/validation and the RLS backstop, but not yet with a real admin login. |
-| React UI (`my-react-app/`) | **On the API.** Mock data is gone. Every page loads through `src/api/*` + `useAsync`. Admin page (`pages/Admin.jsx` + `pages/admin/*Panel.jsx`) has three tabs: Fleet (add/edit/toggle), Bookings (approve, pick-up, return, decline/cancel, reopen), Users (email search, grant/remove admin). Not yet clicked through with a real admin login. |
+| React UI (`my-react-app/`) | **On the API.** Mock data is gone. Every page loads through `src/api/*` + `useAsync`. Admin page (`pages/Admin.jsx` + `pages/admin/*Panel.jsx`) has four tabs: Fleet (add/edit/toggle), Bookings (approve, pick-up, return, decline/cancel, reopen), Users (email search, grant/remove admin), Audit log (`AuditPanel.jsx`, read-only, filter by target type, paged via `GET /api/admin/audit`). Not yet clicked through with a real admin login. |
 | Auth | **Google only, run through Flask** (`api/app/routes/auth.py`, PKCE). React has no Supabase SDK or keys: `src/auth/` holds the session (access token in memory, refresh token in localStorage) and `useAuth()`. Needs the Supabase Redirect URL set (see `api/.env.example`). Not yet tested with a real Google login. |
 
 ### Roadmap, in order
@@ -83,6 +83,7 @@ supabase/
   001_schema_and_seed.sql     tables, seed rows, no-overlap exclusion constraint. DROPS TABLES - destructive.
   002_functions.sql           available_cars() RPC, set_booking_price() trigger. Re-runnable.
   003_rls.sql                 profiles, is_admin(), RLS policies, column grants. Re-runnable.
+  004_audit_log.sql           audit_log table + audit triggers on cars, categories, bookings, profiles. Re-runnable.
   local/                      local PostgreSQL test harness (see "Verifying changes")
 ```
 
@@ -99,6 +100,16 @@ supabase/
   `return_at > pickup_at`. 3 seed bookings with `user_id = NULL`.
 - **profiles**: `id -> auth.users`, `email`, `role` (`customer` | `admin`).
   Created automatically by the `on_auth_user_created` trigger.
+- **audit_log**: `id`, `actor_id` (uuid, no FK so history outlives users;
+  NULL = SQL Editor / service_role), `action` (`car.deactivated`,
+  `booking.status_changed`, `user.role_changed`, `<type>.created|updated|deleted`),
+  `target_type` (`car` | `category` | `booking` | `user`), `target_id` (text),
+  `metadata` jsonb (`source`, plus `changes: {col: {from, to}}` or `row`),
+  `ip_address` inet, `created_at`. Written only by the `audit_row_change()`
+  trigger (SECURITY DEFINER); logs admins and no-user changes, skips
+  customers. Admin-only SELECT; no API role can write; UPDATE blocked for
+  everyone. IP comes from Flask's `X-Client-IP` header (best effort, a direct
+  REST caller can forge it).
 
 The API returns rows with these **exact** column names, and components read
 them directly. `GET /api/bookings` also embeds `car: {id, make, model, year,
@@ -185,7 +196,8 @@ image_url}`. That field is null if RLS hides the car because it was deactivated.
   `create or replace` / `drop ... if exists`), add or adjust tests in
   `supabase/local/tests.sql`, run them, and tell the user to re-run the file in
   the Supabase SQL Editor. Never tell them to re-run 001 on a live project:
-  it drops all tables and data, after which 002 and 003 must be re-applied.
+  it drops all tables and data, after which 002, 003 and 004 must be
+  re-applied (dropping the tables also drops the audit triggers on them).
 - Match the existing comment style: explain *why*, especially for security
   decisions.
 
@@ -204,7 +216,7 @@ npm run lint; npm run build                            # oxlint, production buil
 
 | What changed | Run | Notes |
 | --- | --- | --- |
-| Any `supabase/*.sql` | `./supabase/local/run-tests.ps1` (repo root) | Rebuilds the throwaway `carrental_test` DB, applies shim + 001→003 (002/003 twice for idempotency), runs `tests.sql` as anon / customer / admin / service_role. Password comes from `%APPDATA%\postgresql\pgpass.conf`. Exits non-zero on failure. Never touches Supabase. |
+| Any `supabase/*.sql` | `./supabase/local/run-tests.ps1` (repo root) | Rebuilds the throwaway `carrental_test` DB, applies shim + 001→004 (002–004 twice for idempotency), runs `tests.sql` as anon / customer / admin / service_role. Password comes from `%APPDATA%\postgresql\pgpass.conf`. Exits non-zero on failure. Never touches Supabase. |
 | API or live DB | `cd api; .venv\Scripts\python.exe verify.py` | Read-only checks against live Supabase. Set `PYTHONIOENCODING=utf-8` in PowerShell. Cannot test logged-in behaviour (it has no user token); the local SQL tests cover that. |
 | Front end | `npm run build` and `npm run lint` in `my-react-app/` | No test framework yet. |
 

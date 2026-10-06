@@ -14,6 +14,17 @@ from .errors import ApiError
 from .supabase_client import get_user_client, verify_token
 
 
+def client_ip() -> str | None:
+    """The caller's IP, for the audit log.
+
+    access_route reads X-Forwarded-For, which a hosting proxy (Vercel) fills
+    in; locally it is just the socket address. A client can forge that header
+    when there is no proxy in front, so this is best effort, not proof.
+    """
+    route = request.access_route
+    return route[0] if route else request.remote_addr
+
+
 def bearer_token() -> str | None:
     """Pull the JWT out of the Authorization header, if present."""
     header = request.headers.get("Authorization", "")
@@ -48,7 +59,7 @@ def require_auth(view):
         g.access_token = token
         g.user = user
         g.user_id = user.id
-        g.db = get_user_client(token)
+        g.db = get_user_client(token, client_ip())
         return view(*args, **kwargs)
 
     return wrapper
@@ -90,7 +101,7 @@ def optional_auth(view):
         g.access_token = token if user else None
         g.user = user
         g.user_id = user.id if user else None
-        g.db = get_user_client(token) if user else None
+        g.db = get_user_client(token, client_ip()) if user else None
         return view(*args, **kwargs)
 
     return wrapper

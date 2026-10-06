@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import LoadState from '../components/LoadState'
+import AuditPanel from './admin/AuditPanel'
 import BookingsPanel from './admin/BookingsPanel'
 import FleetPanel from './admin/FleetPanel'
 import UsersPanel from './admin/UsersPanel'
@@ -9,6 +10,7 @@ const TABS = [
   { id: 'fleet', label: 'Fleet', Panel: FleetPanel },
   { id: 'bookings', label: 'Bookings', Panel: BookingsPanel },
   { id: 'users', label: 'Users', Panel: UsersPanel },
+  { id: 'audit', label: 'Audit log', Panel: AuditPanel },
 ]
 
 export default function Admin() {
@@ -40,7 +42,10 @@ export default function Admin() {
     <div className="page">
       <div className="page-header">
         <h1>Admin</h1>
-        <p>Manage the fleet, approve bookings, and control who has admin access.</p>
+        <p>
+          Manage the fleet, approve bookings, control who has admin access, and
+          see every change that was made.
+        </p>
       </div>
 
       <div className="tabs glass" role="tablist" aria-label="Admin sections">

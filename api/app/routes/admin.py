@@ -1,4 +1,4 @@
-"""Admin endpoints: fleet, bookings, and user roles.
+"""Admin endpoints: fleet, bookings, user roles, and the audit log.
 
 Every route is @require_admin and queries through g.db, the admin's own
 user client. The security boundary is RLS (the is_admin() policies in
@@ -12,11 +12,13 @@ from .. import queries
 from ..auth import require_admin
 from ..errors import ApiError
 from ..validation import (
+    AUDIT_TARGET_TYPES,
     BOOKING_STATUSES,
     ROLES,
     car_payload,
     json_body,
     one_of,
+    optional_int,
 )
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -106,3 +108,23 @@ def set_role(user_id):
         raise ApiError("You can't change your own role. Ask another admin.", 400)
 
     return jsonify(queries.set_role(g.db, str(user_id), role))
+
+
+# --- audit log ---------------------------------------------------------------
+
+@bp.get("/audit")
+@require_admin
+def audit_log():
+    """GET /api/admin/audit?type=booking&before=120: newest first, 50 at a time.
+
+    `before` is the id of the last entry already shown. Returns
+    { entries: [...], has_more }. Read-only: the log is written by database
+    triggers, so there is no endpoint that adds to or edits it.
+    """
+    target_type = request.args.get("type") or None
+    if target_type:
+        one_of(target_type, "type", AUDIT_TARGET_TYPES)
+    before = optional_int(request.args.get("before"), "before")
+    return jsonify(
+        queries.list_audit_log(g.db, target_type=target_type, before_id=before)
+    )

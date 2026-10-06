@@ -2,7 +2,7 @@
 -- CarRental — database tests
 --
 -- Runs against a local database that has had 00_supabase_shim.sql and then
--- 001, 002, 003 applied. Use run-tests.ps1 rather than running this directly.
+-- 001, 002, 003, 004 applied. Use run-tests.ps1 rather than running this directly.
 --
 -- Every RLS check runs as a real API role (anon / authenticated /
 -- service_role), never as the superuser, because superusers and table owners
@@ -246,7 +246,9 @@ select t.eq((select count(*) from pg_tables
              where schemaname = 'public' and rowsecurity
                and tablename in ('cars', 'car_categories', 'bookings', 'profiles')),
             4::bigint, 'RLS enabled on all 4 tables');
-select t.eq((select count(*) from pg_policies where schemaname = 'public'),
+select t.eq((select count(*) from pg_policies
+             where schemaname = 'public'
+               and tablename in ('cars', 'car_categories', 'bookings', 'profiles')),
             11::bigint, '11 policies installed');
 
 
@@ -437,7 +439,97 @@ reset role;
 
 
 -- ===========================================================================
--- 11. Nothing leaked through
+-- 11. Audit log (004)
+--
+-- These writes are real (not rolled back), because the log rows are what is
+-- being checked. None of them touch what section 12 looks at.
+-- ===========================================================================
+select t.section('004 audit log');
+
+select t.ok((select rowsecurity from pg_tables where tablename = 'audit_log'),
+            'RLS enabled on audit_log');
+
+-- Section 5 promoted the admin from psql: no logged-in user, so no actor.
+select t.ok(exists (select 1 from audit_log
+                    where action = 'user.role_changed' and target_id = :admin
+                      and actor_id is null and metadata ->> 'source' = 'database'),
+            'SQL Editor change logged with source database and no actor');
+select t.ok(not exists (select 1 from audit_log where target_type = 'user' and action = 'user.created'),
+            'signups are not logged');
+
+-- What Flask's X-Client-IP header looks like by the time it reaches SQL.
+select set_config('request.headers', '{"x-client-ip": "203.0.113.7"}', false);
+select t.act_as('authenticated', :admin);
+
+update bookings set status = 'confirmed' where id = 2;
+update cars set is_active = false where id = 7;
+update cars set daily_rate = 99, color = 'Teal' where id = 8;
+update cars set seats = seats where id = 10;   -- changes nothing
+insert into car_categories (name) values ('Truck');
+
+select t.eq((select count(*) from audit_log where actor_id = :admin), 4::bigint,
+            'admin can read the log; 4 real changes, the no-op skipped');
+select t.eq((select action from audit_log where target_type = 'booking' and target_id = '2'),
+            'booking.status_changed', 'status change gets its own action');
+select t.eq((select metadata -> 'changes' -> 'status' from audit_log
+             where target_type = 'booking' and target_id = '2'),
+            '{"from": "pending", "to": "confirmed"}'::jsonb, 'records status from -> to');
+select t.eq((select ip_address from audit_log where target_type = 'booking' and target_id = '2'),
+            '203.0.113.7'::inet, 'records the X-Client-IP header');
+select t.eq((select action from audit_log where target_type = 'car' and target_id = '7'),
+            'car.deactivated', 'deactivating a car is car.deactivated');
+select t.eq((select action from audit_log where target_type = 'car' and target_id = '8'),
+            'car.updated', 'an edit of several columns is car.updated');
+select t.eq((select array_agg(k order by k)
+             from audit_log, jsonb_object_keys(metadata -> 'changes') k
+             where target_type = 'car' and target_id = '8'),
+            array['color', 'daily_rate'], 'only the changed columns are recorded');
+select t.eq((select metadata -> 'row' ->> 'name' from audit_log where action = 'category.created'),
+            'Truck', 'a create records the new row');
+
+select t.throws($$insert into audit_log (action, target_type, target_id) values ('x', 'car', '1')$$,
+                '42501', 'admin cannot write to the log directly');
+select t.throws($$update audit_log set action = 'x'$$,
+                '42501', 'admin cannot edit the log');
+select t.throws($$delete from audit_log$$,
+                '42501', 'admin cannot delete from the log');
+
+-- A junk header must not block the change; the IP is just left empty.
+select set_config('request.headers', '{"x-client-ip": "not-an-ip"}', false);
+update cars set mileage = mileage + 1 where id = 11;
+select t.ok((select ip_address is null from audit_log where target_type = 'car' and target_id = '11'),
+            'malformed IP header saves the change with a null ip');
+select set_config('request.headers', '', false);
+
+reset role;
+
+-- Customers' own actions are their data, not admin actions.
+select t.act_as('authenticated', :alice);
+insert into bookings (user_id, car_id, pickup_at, return_at, total_price)
+values (:alice, 10, current_date + 60, current_date + 62, 0);
+select t.eq((select count(*) from audit_log), 0::bigint, 'customer sees no log entries');
+select t.throws($$insert into audit_log (action, target_type, target_id) values ('x', 'car', '1')$$,
+                '42501', 'customer cannot write to the log');
+reset role;
+
+select t.ok(not exists (select 1 from audit_log
+                        where target_type = 'booking' and metadata -> 'row' ->> 'user_id' = :alice),
+            'a customer booking is not logged');
+
+select t.act_as('anon', null);
+select t.throws('select count(*) from audit_log', '42501', 'anon cannot read the log');
+reset role;
+
+select t.act_as('service_role', null);
+select t.throws($$delete from audit_log$$, '42501', 'service_role cannot erase the log');
+reset role;
+
+select t.throws($$update audit_log set action = 'x'$$,
+                'P0001', 'entries cannot be changed even from the SQL Editor');
+
+
+-- ===========================================================================
+-- 12. Nothing leaked through
 -- ===========================================================================
 select t.section('final state');
 

@@ -5,8 +5,8 @@
 
 .DESCRIPTION
   1. Drops and recreates the database (default: carrental_test).
-  2. Applies 00_supabase_shim.sql, then 001, 002, 003 from supabase/.
-  3. Re-applies 002 and 003 to prove they are safe to re-run.
+  2. Applies 00_supabase_shim.sql, then 001, 002, 003, 004 from supabase/.
+  3. Re-applies 002, 003 and 004 to prove they are safe to re-run.
   4. Runs tests.sql and prints a PASS/FAIL table.
 
   Exits 0 when every test passes, non-zero otherwise.
@@ -55,9 +55,11 @@ $steps = @(
   (Join-Path $supabase '001_schema_and_seed.sql'),
   (Join-Path $supabase '002_functions.sql'),
   (Join-Path $supabase '003_rls.sql'),
-  # Second pass: 002 and 003 promise they are safe to re-run.
+  (Join-Path $supabase '004_audit_log.sql'),
+  # Second pass: 002, 003 and 004 promise they are safe to re-run.
   (Join-Path $supabase '002_functions.sql'),
-  (Join-Path $supabase '003_rls.sql')
+  (Join-Path $supabase '003_rls.sql'),
+  (Join-Path $supabase '004_audit_log.sql')
 )
 
 foreach ($file in $steps) {

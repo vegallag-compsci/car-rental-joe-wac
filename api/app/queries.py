@@ -235,6 +235,20 @@ def get_role(db, user_id):
 ADMIN_BOOKING_FIELDS = f"{BOOKING_WITH_CAR_FIELDS}, user_id"
 
 
+def _emails_for(db, user_ids):
+    """{user id: email} for the given ids, in one query.
+
+    bookings.user_id and audit_log.actor_id don't have a foreign key the REST
+    API can embed through, so emails are looked up separately rather than
+    one request per row. Ids with no profile (e.g. a deleted user) are absent.
+    """
+    ids = sorted({user_id for user_id in user_ids if user_id})
+    if not ids:
+        return {}
+    profiles = db.table("profiles").select("id, email").in_("id", ids).execute().data
+    return {p["id"]: p["email"] for p in profiles}
+
+
 def create_car(db, fields):
     rows = db.table("cars").insert(fields).execute().data
     if not rows:
@@ -255,22 +269,13 @@ def update_car(db, car_id, fields):
 
 
 def list_all_bookings(db, *, status=None):
-    """Every booking, newest pickup first, with its car and customer email.
-
-    bookings.user_id points at auth.users, which the REST API can't embed,
-    so emails come from profiles in a second query rather than one per row.
-    """
+    """Every booking, newest pickup first, with its car and customer email."""
     query = db.table("bookings").select(ADMIN_BOOKING_FIELDS)
     if status:
         query = query.eq("status", status)
     bookings = query.order("pickup_at", desc=True).execute().data
 
-    user_ids = sorted({b["user_id"] for b in bookings if b["user_id"]})
-    emails = {}
-    if user_ids:
-        profiles = db.table("profiles").select("id, email").in_("id", user_ids).execute().data
-        emails = {p["id"]: p["email"] for p in profiles}
-
+    emails = _emails_for(db, (b["user_id"] for b in bookings))
     for booking in bookings:
         # None for the unowned seed bookings.
         booking["customer_email"] = emails.get(booking["user_id"])
@@ -337,3 +342,36 @@ def set_role(db, user_id, role):
     if not rows:
         raise ApiError("No user with that id.", 404)
     return rows[0]
+
+
+AUDIT_FIELDS = "id, actor_id, action, target_type, target_id, metadata, ip_address, created_at"
+AUDIT_PAGE_SIZE = 50
+
+
+def list_audit_log(db, *, target_type=None, before_id=None):
+    """One page of the audit log, newest first.
+
+    Rows are written by database triggers (supabase/004_audit_log.sql), never
+    by Flask, and audit_log_admin_read lets only admins read them.
+
+    Pages by id (`before_id` = the last id already shown) rather than offset,
+    so entries logged while someone is paging don't shift or repeat rows.
+    Adds `actor_email`, and `target_email` for entries about a user.
+    """
+    query = db.table("audit_log").select(AUDIT_FIELDS)
+    if target_type:
+        query = query.eq("target_type", target_type)
+    if before_id is not None:
+        query = query.lt("id", before_id)
+    # One extra row says whether another page exists, without a count query.
+    rows = query.order("id", desc=True).limit(AUDIT_PAGE_SIZE + 1).execute().data
+    entries = rows[:AUDIT_PAGE_SIZE]
+
+    user_targets = [e["target_id"] for e in entries if e["target_type"] == "user"]
+    emails = _emails_for(db, [e["actor_id"] for e in entries] + user_targets)
+    for entry in entries:
+        entry["actor_email"] = emails.get(entry["actor_id"])
+        if entry["target_type"] == "user":
+            entry["target_email"] = emails.get(entry["target_id"])
+
+    return {"entries": entries, "has_more": len(rows) > AUDIT_PAGE_SIZE}

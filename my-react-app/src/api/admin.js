@@ -33,6 +33,15 @@ export function searchUsers({ email, signal } = {}) {
   return request(`/api/admin/users${query({ email })}`, { signal })
 }
 
+/**
+ * One page of the audit log, newest first: { entries, has_more }.
+ * `type` narrows to car | category | booking | user; pass the last entry's id
+ * as `before` to get the next page.
+ */
+export function getAuditLog({ type, before, signal } = {}) {
+  return request(`/api/admin/audit${query({ type, before })}`, { signal })
+}
+
 export function setUserRole(userId, role) {
   return request(`/api/admin/users/${userId}`, {
     method: 'PATCH',

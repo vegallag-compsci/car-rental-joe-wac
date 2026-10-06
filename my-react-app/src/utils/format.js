@@ -37,6 +37,18 @@ export function formatDate(value) {
   })
 }
 
+// A full timestamp (e.g. created_at), shown in the viewer's own time zone.
+export function formatDateTime(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function formatMoney(amount) {
   return `$${Math.round(Number(amount)).toLocaleString('en-US')}`
 }
